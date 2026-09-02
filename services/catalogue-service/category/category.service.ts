@@ -8,7 +8,7 @@ import {
   insertCategory,
 } from './category.repository';
 
-const CATEGORY_TOPIC = 'catalogue.category';
+const CATEGORY_TOPIC = process.env.CATEGORY_TOPIC ?? 'catalogue.category';
 
 export async function getCategory(id: string): Promise<Category | null> {
   return findCategoryById(id);

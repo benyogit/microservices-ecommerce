@@ -21,8 +21,10 @@ to MongoDB and publishes domain events to Kafka on create/delete.
 | `MONGO_DB_NAME`    | `catalogue`               |
 | `KAFKA_BROKERS`    | `localhost:9092`          |
 | `KAFKA_CLIENT_ID`  | `catalogue-service`       |
+| `PRODUCT_TOPIC`    | `catalogue.product`       |
+| `CATEGORY_TOPIC`   | `catalogue.category`      |
 
 ## Events published
 
-- `catalogue.product`: `product.created`, `product.deleted`
-- `catalogue.category`: `category.created`, `category.deleted`
+- `PRODUCT_TOPIC` (default `catalogue.product`): `product.created`, `product.deleted`
+- `CATEGORY_TOPIC` (default `catalogue.category`): `category.created`, `category.deleted`

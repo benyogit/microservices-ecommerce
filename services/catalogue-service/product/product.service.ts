@@ -8,7 +8,7 @@ import {
   insertProduct,
 } from './product.repository';
 
-const PRODUCT_TOPIC = 'catalogue.product';
+const PRODUCT_TOPIC = process.env.PRODUCT_TOPIC ?? 'catalogue.product';
 
 export async function getProduct(id: string): Promise<Product | null> {
   return findProductById(id);
