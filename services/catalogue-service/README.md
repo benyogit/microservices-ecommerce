@@ -5,13 +5,34 @@ to MongoDB and publishes domain events to Kafka on create/delete.
 
 ## Structure
 
-- `product/` — product type, Mongo repository, and service (business logic +
-  Kafka events)
-- `category/` — category type, Mongo repository, and service
+- `product/` — product type, Mongo repository, service (business logic +
+  Kafka events), controller, and routes
+- `category/` — category type, Mongo repository, service, controller, and
+  routes
 - `infra/db/mongo.ts` — shared MongoDB connection
 - `infra/kafka/producer.ts` — shared Kafka producer
+- `infra/http/asyncHandler.ts` — wraps async route handlers so rejected
+  promises reach Express's error middleware instead of crashing the process
+- `app.ts` — builds the Express app and mounts the routers
+- `server.ts` — starts the HTTP server
 - `index.ts` — single shared entry point re-exporting `product` and
   `category`, so each subfolder doesn't need its own duplicate `index.ts`
+
+## HTTP API
+
+| Method | Path             | Description       |
+| ------ | ---------------- | ------------------ |
+| GET    | `/products`      | List products      |
+| GET    | `/products/:id`  | Get a product      |
+| POST   | `/products`      | Create a product    |
+| DELETE | `/products/:id`  | Delete a product    |
+| GET    | `/categories`     | List categories     |
+| GET    | `/categories/:id` | Get a category      |
+| POST   | `/categories`     | Create a category    |
+| DELETE | `/categories/:id` | Delete a category    |
+
+Run with `npm run dev` (or `npm run build && npm start`). Listens on `PORT`
+(default `3000`).
 
 ## Configuration
 
