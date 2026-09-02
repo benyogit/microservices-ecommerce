@@ -1,5 +1,5 @@
 import { Collection } from 'mongodb';
-import { connectMongo } from '../db/mongo';
+import { connectMongo } from '../infra/db/mongo';
 import { Category } from './category';
 
 const COLLECTION_NAME = 'categories';

@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { publishEvent } from '../kafka/producer';
+import { publishEvent } from '../infra/kafka/producer';
 import { Category } from './category';
 import {
   deleteCategory,

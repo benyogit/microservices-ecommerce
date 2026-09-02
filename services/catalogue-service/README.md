@@ -8,8 +8,8 @@ to MongoDB and publishes domain events to Kafka on create/delete.
 - `product/` — product type, Mongo repository, and service (business logic +
   Kafka events)
 - `category/` — category type, Mongo repository, and service
-- `db/mongo.ts` — shared MongoDB connection
-- `kafka/producer.ts` — shared Kafka producer
+- `infra/db/mongo.ts` — shared MongoDB connection
+- `infra/kafka/producer.ts` — shared Kafka producer
 - `index.ts` — single shared entry point re-exporting `product` and
   `category`, so each subfolder doesn't need its own duplicate `index.ts`
 
