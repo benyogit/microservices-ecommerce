@@ -28,3 +28,9 @@ to MongoDB and publishes domain events to Kafka on create/delete.
 
 - `PRODUCT_TOPIC` (default `catalogue.product`): `product.created`, `product.deleted`
 - `CATEGORY_TOPIC` (default `catalogue.category`): `category.created`, `category.deleted`
+
+## Auth
+
+This service performs no JWT/auth validation of its own — authentication
+and authorization are handled upstream by an API gateway (e.g. AWS API
+Gateway) or another dedicated service before requests reach it.
