@@ -5,18 +5,35 @@ to MongoDB and publishes domain events to Kafka on create/delete.
 
 ## Structure
 
-- `product/` — product type, Mongo repository, service (business logic +
-  Kafka events), controller, and routes
-- `category/` — category type, Mongo repository, service, controller, and
-  routes
-- `infra/db/mongo.ts` — shared MongoDB connection
-- `infra/kafka/producer.ts` — shared Kafka producer
+- `product/` — `ProductRepository` interface + `MongoProductRepository`,
+  `ProductService` (business logic + Kafka events), `ProductController`,
+  and routes
+- `category/` — same shape as `product/`, for categories
+- `infra/db/mongo.ts` — injectable `MongoConnection`
+- `infra/events/event-publisher.ts` — `EventPublisher` interface (lets the
+  Kafka producer be swapped for another queue, or wrapped with caching,
+  without touching the services)
+- `infra/kafka/producer.ts` — `KafkaEventPublisher`, the current
+  `EventPublisher` implementation
 - `infra/http/asyncHandler.ts` — wraps async route handlers so rejected
   promises reach Express's error middleware instead of crashing the process
+- `infra/di/types.ts` / `infra/di/container.ts` — Inversify DI: symbol
+  tokens and the composition root binding each interface to its current
+  implementation
 - `app.ts` — builds the Express app and mounts the routers
 - `server.ts` — starts the HTTP server
 - `index.ts` — single shared entry point re-exporting `product` and
   `category`, so each subfolder doesn't need its own duplicate `index.ts`
+
+## Dependency injection
+
+Repositories and the event publisher are bound behind interfaces
+(`ProductRepository`, `CategoryRepository`, `EventPublisher`) in
+`infra/di/container.ts`, and constructor-injected into services and
+controllers via Inversify (`@injectable()` / `@inject()`). To add caching
+or swap Kafka for another queue locally, implement the relevant interface
+and change its binding in `container.ts` — no changes needed in the
+services or controllers.
 
 ## HTTP API
 

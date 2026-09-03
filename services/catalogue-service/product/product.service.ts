@@ -1,31 +1,36 @@
+import { injectable, inject } from 'inversify';
 import { randomUUID } from 'crypto';
-import { publishEvent } from '../infra/kafka/producer';
+import { TYPES } from '../infra/di/types';
+import { EventPublisher } from '../infra/events/event-publisher';
 import { Product } from './product';
-import {
-  deleteProduct,
-  findAllProducts,
-  findProductById,
-  insertProduct,
-} from './product.repository';
+import { ProductRepository } from './product.repository';
 
 const PRODUCT_TOPIC = process.env.PRODUCT_TOPIC ?? 'catalogue.product';
 
-export async function getProduct(id: string): Promise<Product | null> {
-  return findProductById(id);
-}
+@injectable()
+export class ProductService {
+  constructor(
+    @inject(TYPES.ProductRepository) private readonly repository: ProductRepository,
+    @inject(TYPES.EventPublisher) private readonly eventPublisher: EventPublisher,
+  ) {}
 
-export async function listProducts(): Promise<Product[]> {
-  return findAllProducts();
-}
+  async getProduct(id: string): Promise<Product | null> {
+    return this.repository.findById(id);
+  }
 
-export async function createProduct(input: Omit<Product, 'id'>): Promise<Product> {
-  const product: Product = { id: randomUUID(), ...input };
-  await insertProduct(product);
-  await publishEvent(PRODUCT_TOPIC, { type: 'product.created', product });
-  return product;
-}
+  async listProducts(): Promise<Product[]> {
+    return this.repository.findAll();
+  }
 
-export async function removeProduct(id: string): Promise<void> {
-  await deleteProduct(id);
-  await publishEvent(PRODUCT_TOPIC, { type: 'product.deleted', productId: id });
+  async createProduct(input: Omit<Product, 'id'>): Promise<Product> {
+    const product: Product = { id: randomUUID(), ...input };
+    await this.repository.insert(product);
+    await this.eventPublisher.publish(PRODUCT_TOPIC, { type: 'product.created', product });
+    return product;
+  }
+
+  async removeProduct(id: string): Promise<void> {
+    await this.repository.delete(id);
+    await this.eventPublisher.publish(PRODUCT_TOPIC, { type: 'product.deleted', productId: id });
+  }
 }

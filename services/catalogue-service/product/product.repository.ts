@@ -1,30 +1,44 @@
+import { injectable, inject } from 'inversify';
 import { Collection } from 'mongodb';
-import { connectMongo } from '../infra/db/mongo';
+import { TYPES } from '../infra/di/types';
+import { MongoConnection } from '../infra/db/mongo';
 import { Product } from './product';
 
 const COLLECTION_NAME = 'products';
 
-async function getCollection(): Promise<Collection<Product>> {
-  const db = await connectMongo();
-  return db.collection<Product>(COLLECTION_NAME);
+export interface ProductRepository {
+  findById(id: string): Promise<Product | null>;
+  findAll(): Promise<Product[]>;
+  insert(product: Product): Promise<void>;
+  delete(id: string): Promise<void>;
 }
 
-export async function findProductById(id: string): Promise<Product | null> {
-  const collection = await getCollection();
-  return collection.findOne({ id });
-}
+@injectable()
+export class MongoProductRepository implements ProductRepository {
+  constructor(@inject(TYPES.MongoConnection) private readonly mongo: MongoConnection) {}
 
-export async function findAllProducts(): Promise<Product[]> {
-  const collection = await getCollection();
-  return collection.find().toArray();
-}
+  private async getCollection(): Promise<Collection<Product>> {
+    const db = await this.mongo.connect();
+    return db.collection<Product>(COLLECTION_NAME);
+  }
 
-export async function insertProduct(product: Product): Promise<void> {
-  const collection = await getCollection();
-  await collection.insertOne(product);
-}
+  async findById(id: string): Promise<Product | null> {
+    const collection = await this.getCollection();
+    return collection.findOne({ id });
+  }
 
-export async function deleteProduct(id: string): Promise<void> {
-  const collection = await getCollection();
-  await collection.deleteOne({ id });
+  async findAll(): Promise<Product[]> {
+    const collection = await this.getCollection();
+    return collection.find().toArray();
+  }
+
+  async insert(product: Product): Promise<void> {
+    const collection = await this.getCollection();
+    await collection.insertOne(product);
+  }
+
+  async delete(id: string): Promise<void> {
+    const collection = await this.getCollection();
+    await collection.deleteOne({ id });
+  }
 }

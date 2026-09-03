@@ -1,30 +1,44 @@
+import { injectable, inject } from 'inversify';
 import { Collection } from 'mongodb';
-import { connectMongo } from '../infra/db/mongo';
+import { TYPES } from '../infra/di/types';
+import { MongoConnection } from '../infra/db/mongo';
 import { Category } from './category';
 
 const COLLECTION_NAME = 'categories';
 
-async function getCollection(): Promise<Collection<Category>> {
-  const db = await connectMongo();
-  return db.collection<Category>(COLLECTION_NAME);
+export interface CategoryRepository {
+  findById(id: string): Promise<Category | null>;
+  findAll(): Promise<Category[]>;
+  insert(category: Category): Promise<void>;
+  delete(id: string): Promise<void>;
 }
 
-export async function findCategoryById(id: string): Promise<Category | null> {
-  const collection = await getCollection();
-  return collection.findOne({ id });
-}
+@injectable()
+export class MongoCategoryRepository implements CategoryRepository {
+  constructor(@inject(TYPES.MongoConnection) private readonly mongo: MongoConnection) {}
 
-export async function findAllCategories(): Promise<Category[]> {
-  const collection = await getCollection();
-  return collection.find().toArray();
-}
+  private async getCollection(): Promise<Collection<Category>> {
+    const db = await this.mongo.connect();
+    return db.collection<Category>(COLLECTION_NAME);
+  }
 
-export async function insertCategory(category: Category): Promise<void> {
-  const collection = await getCollection();
-  await collection.insertOne(category);
-}
+  async findById(id: string): Promise<Category | null> {
+    const collection = await this.getCollection();
+    return collection.findOne({ id });
+  }
 
-export async function deleteCategory(id: string): Promise<void> {
-  const collection = await getCollection();
-  await collection.deleteOne({ id });
+  async findAll(): Promise<Category[]> {
+    const collection = await this.getCollection();
+    return collection.find().toArray();
+  }
+
+  async insert(category: Category): Promise<void> {
+    const collection = await this.getCollection();
+    await collection.insertOne(category);
+  }
+
+  async delete(id: string): Promise<void> {
+    const collection = await this.getCollection();
+    await collection.deleteOne({ id });
+  }
 }

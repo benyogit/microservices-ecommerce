@@ -1,26 +1,33 @@
+import { injectable, inject } from 'inversify';
 import { Request, Response } from 'express';
-import { createCategory, getCategory, listCategories, removeCategory } from './category.service';
+import { TYPES } from '../infra/di/types';
+import { CategoryService } from './category.service';
 
-export async function listCategoriesHandler(_req: Request, res: Response): Promise<void> {
-  const categories = await listCategories();
-  res.json(categories);
-}
+@injectable()
+export class CategoryController {
+  constructor(@inject(TYPES.CategoryService) private readonly service: CategoryService) {}
 
-export async function getCategoryHandler(req: Request, res: Response): Promise<void> {
-  const category = await getCategory(req.params.id);
-  if (!category) {
-    res.status(404).json({ error: 'Category not found' });
-    return;
-  }
-  res.json(category);
-}
+  list = async (_req: Request, res: Response): Promise<void> => {
+    const categories = await this.service.listCategories();
+    res.json(categories);
+  };
 
-export async function createCategoryHandler(req: Request, res: Response): Promise<void> {
-  const category = await createCategory(req.body);
-  res.status(201).json(category);
-}
+  get = async (req: Request, res: Response): Promise<void> => {
+    const category = await this.service.getCategory(req.params.id);
+    if (!category) {
+      res.status(404).json({ error: 'Category not found' });
+      return;
+    }
+    res.json(category);
+  };
 
-export async function deleteCategoryHandler(req: Request, res: Response): Promise<void> {
-  await removeCategory(req.params.id);
-  res.status(204).send();
+  create = async (req: Request, res: Response): Promise<void> => {
+    const category = await this.service.createCategory(req.body);
+    res.status(201).json(category);
+  };
+
+  remove = async (req: Request, res: Response): Promise<void> => {
+    await this.service.removeCategory(req.params.id);
+    res.status(204).send();
+  };
 }
