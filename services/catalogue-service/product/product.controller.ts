@@ -22,8 +22,8 @@ export class ProductController {
   };
 
   create = async (req: Request, res: Response): Promise<void> => {
-    const product = await this.service.createProduct(req.body);
-    res.status(201).json(product);
+    const result = await this.service.createProduct(req.body);
+    res.status(201).json(result);
   };
 
   remove = async (req: Request, res: Response): Promise<void> => {

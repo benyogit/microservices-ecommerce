@@ -15,6 +15,11 @@ to MongoDB and publishes domain events to Kafka on create/delete.
   without touching the services)
 - `infra/kafka/producer.ts` — `KafkaEventPublisher`, the current
   `EventPublisher` implementation
+- `infra/storage/media-storage.ts` — `MediaStorage` interface: returns a
+  signed URL clients can upload an image/video to directly, without the
+  service caring which provider is behind it (S3, Azure Blob, ...)
+- `infra/storage/s3-media-storage.ts` — `S3MediaStorage`, the current
+  `MediaStorage` implementation (S3 presigned PUT URLs)
 - `infra/http/asyncHandler.ts` — wraps async route handlers so rejected
   promises reach Express's error middleware instead of crashing the process
 - `infra/di/types.ts` / `infra/di/container.ts` — Inversify DI: symbol
@@ -27,13 +32,13 @@ to MongoDB and publishes domain events to Kafka on create/delete.
 
 ## Dependency injection
 
-Repositories and the event publisher are bound behind interfaces
-(`ProductRepository`, `CategoryRepository`, `EventPublisher`) in
-`infra/di/container.ts`, and constructor-injected into services and
-controllers via Inversify (`@injectable()` / `@inject()`). To add caching
-or swap Kafka for another queue locally, implement the relevant interface
-and change its binding in `container.ts` — no changes needed in the
-services or controllers.
+Repositories, the event publisher, and media storage are bound behind
+interfaces (`ProductRepository`, `CategoryRepository`, `EventPublisher`,
+`MediaStorage`) in `infra/di/container.ts`, and constructor-injected into
+services and controllers via Inversify (`@injectable()` / `@inject()`). To
+add caching, swap Kafka for another queue, or swap S3 for Azure Blob
+locally, implement the relevant interface and change its binding in
+`container.ts` — no changes needed in the services or controllers.
 
 ## HTTP API
 
@@ -41,7 +46,7 @@ services or controllers.
 | ------ | ---------------- | ------------------ |
 | GET    | `/products`      | List products      |
 | GET    | `/products/:id`  | Get a product      |
-| POST   | `/products`      | Create a product    |
+| POST   | `/products`      | Create a product; returns `{ product, imageUploadUrl }` — the client uploads the image directly to `imageUploadUrl` (a signed PUT URL) |
 | DELETE | `/products/:id`  | Delete a product    |
 | GET    | `/categories`     | List categories     |
 | GET    | `/categories/:id` | Get a category      |
@@ -61,6 +66,13 @@ Run with `npm run dev` (or `npm run build && npm start`). Listens on `PORT`
 | `KAFKA_CLIENT_ID`  | `catalogue-service`       |
 | `PRODUCT_TOPIC`    | `catalogue.product`       |
 | `CATEGORY_TOPIC`   | `catalogue.category`      |
+| `STORAGE_BUCKET`   | `catalogue-media`         |
+| `AWS_REGION`       | `us-east-1`               |
+| `STORAGE_UPLOAD_URL_TTL_SECONDS` | `900`       |
+
+AWS credentials for `S3MediaStorage` are picked up from the standard AWS
+SDK credential chain (env vars, shared config, instance/task role) — none
+are hardcoded here.
 
 ## Events published
 

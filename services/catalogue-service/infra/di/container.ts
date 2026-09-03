@@ -4,6 +4,8 @@ import { TYPES } from './types';
 import { MongoConnection } from '../db/mongo';
 import { EventPublisher } from '../events/event-publisher';
 import { KafkaEventPublisher } from '../kafka/producer';
+import { MediaStorage } from '../storage/media-storage';
+import { S3MediaStorage } from '../storage/s3-media-storage';
 import { ProductRepository, MongoProductRepository } from '../../product/product.repository';
 import { ProductService } from '../../product/product.service';
 import { ProductController } from '../../product/product.controller';
@@ -15,6 +17,7 @@ const container = new Container();
 
 container.bind<MongoConnection>(TYPES.MongoConnection).to(MongoConnection).inSingletonScope();
 container.bind<EventPublisher>(TYPES.EventPublisher).to(KafkaEventPublisher).inSingletonScope();
+container.bind<MediaStorage>(TYPES.MediaStorage).to(S3MediaStorage).inSingletonScope();
 
 container
   .bind<ProductRepository>(TYPES.ProductRepository)
