@@ -1,0 +1,253 @@
+openapi: 3.0.3
+info:
+  title: Catalogue Service API
+  description: >
+    Manages the product catalogue (products and categories). Persists to
+    MongoDB and publishes domain events to Kafka on create/delete. Auth is
+    not handled by this service — it's expected to sit behind an API
+    gateway.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+paths:
+  /products:
+    get:
+      operationId: listProducts
+      summary: List products
+      tags: [Products]
+      responses:
+        '200':
+          description: List of products
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+    post:
+      operationId: createProduct
+      summary: Create a product
+      description: >
+        Creates the product and returns a signed URL the client uploads the
+        product image to directly (see MediaStorage in the service README).
+      tags: [Products]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateProductRequest'
+      responses:
+        '201':
+          description: Product created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateProductResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /products/{id}:
+    get:
+      operationId: getProduct
+      summary: Get a product by id
+      tags: [Products]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: The product
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      operationId: deleteProduct
+      summary: Delete a product by id
+      tags: [Products]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Product deleted
+
+  /categories:
+    get:
+      operationId: listCategories
+      summary: List categories
+      tags: [Categories]
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+    post:
+      operationId: createCategory
+      summary: Create a category
+      tags: [Categories]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryRequest'
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+
+  /categories/{id}:
+    get:
+      operationId: getCategory
+      summary: Get a category by id
+      tags: [Categories]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200':
+          description: The category
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Category'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      operationId: deleteCategory
+      summary: Delete a category by id
+      tags: [Categories]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '204':
+          description: Category deleted
+
+components:
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    Product:
+      type: object
+      required: [id, name, description, price, categoryId, imageKey]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: double
+        categoryId:
+          type: string
+        imageKey:
+          type: string
+          description: Storage key for the product's image (see MediaStorage).
+
+    CreateProductRequest:
+      type: object
+      required: [name, description, price, categoryId]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        price:
+          type: number
+          format: double
+          exclusiveMinimum: 0
+        categoryId:
+          type: string
+          minLength: 1
+
+    CreateProductResponse:
+      type: object
+      required: [product, imageUploadUrl]
+      properties:
+        product:
+          $ref: '#/components/schemas/Product'
+        imageUploadUrl:
+          type: string
+          format: uri
+          description: Signed URL the client uploads the product image to directly.
+
+    Category:
+      type: object
+      required: [id, name, description]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+
+    CreateCategoryRequest:
+      type: object
+      required: [name, description]
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 200
+        description:
+          type: string
+          minLength: 1
+          maxLength: 2000
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    ValidationError:
+      type: object
+      required: [error, details]
+      properties:
+        error:
+          type: string
+        details:
+          type: object
+          description: Zod's flattened error shape (fieldErrors / formErrors).
