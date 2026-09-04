@@ -3,13 +3,13 @@ import { randomUUID } from 'crypto';
 import { TYPES } from '../utils/di/types';
 import { EventPublisher } from '../infra/events/event-publisher';
 import { MediaStorage } from '../infra/storage/media-storage';
-import { Product, ProductImage } from './product';
+import { Product, ProductImage, ProductResponse } from './product';
 import { ProductRepository } from './product.repository';
 
 const PRODUCT_TOPIC = process.env.PRODUCT_TOPIC ?? 'catalogue.product';
 
 export interface CreateProductResult {
-  product: Product;
+  product: ProductResponse;
   imageUploadUrl: string;
 }
 
@@ -26,25 +26,33 @@ export class ProductService {
     @inject(TYPES.MediaStorage) private readonly mediaStorage: MediaStorage,
   ) {}
 
-  async getProduct(id: string): Promise<Product | null> {
-    return this.repository.findById(id);
+  private toResponse(product: Product): ProductResponse {
+    return {
+      ...product,
+      images: product.images.map((key) => ({ key, url: this.mediaStorage.getPublicUrl(key) })),
+    };
   }
 
-  async listProducts(): Promise<Product[]> {
-    return this.repository.findAll();
+  async getProduct(id: string): Promise<ProductResponse | null> {
+    const product = await this.repository.findById(id);
+    return product ? this.toResponse(product) : null;
+  }
+
+  async listProducts(): Promise<ProductResponse[]> {
+    const products = await this.repository.findAll();
+    return products.map((product) => this.toResponse(product));
   }
 
   async createProduct(input: Omit<Product, 'id' | 'images'>): Promise<CreateProductResult> {
     const id = randomUUID();
     const key = `products/${id}/images/${randomUUID()}`;
-    const image: ProductImage = { key, url: this.mediaStorage.getPublicUrl(key) };
-    const product: Product = { id, images: [image], ...input };
+    const product: Product = { id, images: [key], ...input };
 
     await this.repository.insert(product);
     await this.eventPublisher.publish(PRODUCT_TOPIC, { type: 'product.created', product });
     const { uploadUrl } = await this.mediaStorage.getUploadUrl(key);
 
-    return { product, imageUploadUrl: uploadUrl };
+    return { product: this.toResponse(product), imageUploadUrl: uploadUrl };
   }
 
   async addProductImage(id: string, contentType?: string): Promise<AddProductImageResult | null> {
@@ -52,17 +60,16 @@ export class ProductService {
     if (!product) return null;
 
     const key = `products/${id}/images/${randomUUID()}`;
-    const image: ProductImage = { key, url: this.mediaStorage.getPublicUrl(key) };
     const { uploadUrl } = await this.mediaStorage.getUploadUrl(key, contentType);
 
-    await this.repository.addImage(id, image);
+    await this.repository.addImage(id, key);
     await this.eventPublisher.publish(PRODUCT_TOPIC, {
       type: 'product.image_added',
       productId: id,
-      image,
+      key,
     });
 
-    return { image, uploadUrl };
+    return { image: { key, url: this.mediaStorage.getPublicUrl(key) }, uploadUrl };
   }
 
   async removeProduct(id: string): Promise<void> {

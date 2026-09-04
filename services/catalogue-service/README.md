@@ -18,7 +18,11 @@ to MongoDB and publishes domain events to Kafka on create/delete.
 - `infra/storage/media-storage.ts` — `MediaStorage` interface: a signed
   URL to upload an image/video to (`getUploadUrl`) and the public/CDN URL
   to read it back (`getPublicUrl`), without the service caring which
-  provider is behind it (S3, Azure Blob, ...)
+  provider is behind it (S3, Azure Blob, ...). `Product.images` persists
+  only storage keys (`string[]`) — never the resolved URL, since that
+  would go stale if the bucket/CDN domain ever changes. `ProductService`
+  maps keys to `{ key, url }` via `getPublicUrl` at response time, so the
+  HTTP API still returns a usable URL per image without storing one.
 - `infra/storage/s3-media-storage.ts` — `S3MediaStorage`, the current
   `MediaStorage` implementation (S3 presigned PUT URLs)
 - `utils/http/asyncHandler.ts` — wraps async route handlers so rejected

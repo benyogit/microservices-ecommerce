@@ -2,7 +2,7 @@ import { injectable, inject } from 'inversify';
 import { Collection } from 'mongodb';
 import { TYPES } from '../utils/di/types';
 import { MongoConnection } from '../infra/db/mongo';
-import { Product, ProductImage } from './product';
+import { Product } from './product';
 
 const COLLECTION_NAME = 'products';
 
@@ -11,7 +11,7 @@ export interface ProductRepository {
   findAll(): Promise<Product[]>;
   insert(product: Product): Promise<void>;
   delete(id: string): Promise<void>;
-  addImage(id: string, image: ProductImage): Promise<void>;
+  addImage(id: string, key: string): Promise<void>;
 }
 
 @injectable()
@@ -43,8 +43,8 @@ export class MongoProductRepository implements ProductRepository {
     await collection.deleteOne({ id });
   }
 
-  async addImage(id: string, image: ProductImage): Promise<void> {
+  async addImage(id: string, key: string): Promise<void> {
     const collection = await this.getCollection();
-    await collection.updateOne({ id }, { $push: { images: image } });
+    await collection.updateOne({ id }, { $push: { images: key } });
   }
 }
