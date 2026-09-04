@@ -8,6 +8,11 @@ export function createApp(): Express {
   const app = express();
 
   app.use(express.json());
+
+  app.get('/health', (_req: Request, res: Response) => {
+    res.status(200).json({ status: 'ok' });
+  });
+
   app.use('/products', productRouter);
   app.use('/categories', categoryRouter);
 

@@ -51,6 +51,7 @@ locally, implement the relevant interface and change its binding in
 
 | Method | Path             | Description       |
 | ------ | ---------------- | ------------------ |
+| GET    | `/health`         | Liveness check      |
 | GET    | `/products`      | List products      |
 | GET    | `/products/:id`  | Get a product      |
 | POST   | `/products`      | Create a product (validated body); returns `{ product, imageUploadUrl }` — the client uploads the image directly to `imageUploadUrl` (a signed PUT URL) |
@@ -107,3 +108,36 @@ are hardcoded here.
 This service performs no JWT/auth validation of its own — authentication
 and authorization are handled upstream by an API gateway (e.g. AWS API
 Gateway) or another dedicated service before requests reach it.
+
+## Docker
+
+`Dockerfile` is multi-stage:
+
+- `development` — full `node_modules`, source mounted at runtime, runs
+  `npm run dev` (`ts-node-dev`, hot reload on file change)
+- `build` — installs deps and compiles TypeScript to `dist/`
+- `production` — copies only `dist/` and production deps into a fresh
+  `node:20-alpine`, runs as the non-root `node` user, and exposes a
+  `HEALTHCHECK` against `GET /health`
+
+**Local development** (service + MongoDB + Kafka, with hot reload):
+
+```
+docker compose up
+```
+
+This builds the `development` target with the repo bind-mounted into the
+container (so edits on the host reload the running server) and starts
+`mongo` and `kafka` (KRaft mode, no Zookeeper) alongside it. The API is at
+`http://localhost:3000`.
+
+**Cloud / production image**:
+
+```
+docker build --target production -t catalogue-service .
+docker run -p 3000:3000 --env-file .env catalogue-service
+```
+
+Point `MONGO_URI`, `KAFKA_BROKERS`, `STORAGE_BUCKET`, etc. (see
+Configuration above) at real infrastructure via env vars — none of it is
+hardcoded.
