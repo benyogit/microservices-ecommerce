@@ -1,6 +1,6 @@
 import { injectable, inject } from 'inversify';
 import { Collection } from 'mongodb';
-import { TYPES } from '../infra/di/types';
+import { TYPES } from '../utils/di/types';
 import { MongoConnection } from '../infra/db/mongo';
 import { Product } from './product';
 

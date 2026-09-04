@@ -1,6 +1,6 @@
 import { injectable, inject } from 'inversify';
 import { Request, Response } from 'express';
-import { TYPES } from '../infra/di/types';
+import { TYPES } from '../utils/di/types';
 import { ProductService } from './product.service';
 
 @injectable()

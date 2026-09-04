@@ -1,11 +1,11 @@
 import 'reflect-metadata';
 import { Container } from 'inversify';
 import { TYPES } from './types';
-import { MongoConnection } from '../db/mongo';
-import { EventPublisher } from '../events/event-publisher';
-import { KafkaEventPublisher } from '../kafka/producer';
-import { MediaStorage } from '../storage/media-storage';
-import { S3MediaStorage } from '../storage/s3-media-storage';
+import { MongoConnection } from '../../infra/db/mongo';
+import { EventPublisher } from '../../infra/events/event-publisher';
+import { KafkaEventPublisher } from '../../infra/kafka/producer';
+import { MediaStorage } from '../../infra/storage/media-storage';
+import { S3MediaStorage } from '../../infra/storage/s3-media-storage';
 import { ProductRepository, MongoProductRepository } from '../../product/product.repository';
 import { ProductService } from '../../product/product.service';
 import { ProductController } from '../../product/product.controller';

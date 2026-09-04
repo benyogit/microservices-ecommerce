@@ -22,9 +22,10 @@ to MongoDB and publishes domain events to Kafka on create/delete.
   `MediaStorage` implementation (S3 presigned PUT URLs)
 - `infra/http/asyncHandler.ts` — wraps async route handlers so rejected
   promises reach Express's error middleware instead of crashing the process
-- `infra/di/types.ts` / `infra/di/container.ts` — Inversify DI: symbol
+- `utils/di/types.ts` / `utils/di/container.ts` — Inversify DI: symbol
   tokens and the composition root binding each interface to its current
-  implementation
+  implementation. Lives under `utils/`, not `infra/`, since it's wiring,
+  not a layer that talks to an outer service
 - `app.ts` — builds the Express app and mounts the routers
 - `server.ts` — starts the HTTP server
 - `index.ts` — single shared entry point re-exporting `product` and
@@ -34,7 +35,7 @@ to MongoDB and publishes domain events to Kafka on create/delete.
 
 Repositories, the event publisher, and media storage are bound behind
 interfaces (`ProductRepository`, `CategoryRepository`, `EventPublisher`,
-`MediaStorage`) in `infra/di/container.ts`, and constructor-injected into
+`MediaStorage`) in `utils/di/container.ts`, and constructor-injected into
 services and controllers via Inversify (`@injectable()` / `@inject()`). To
 add caching, swap Kafka for another queue, or swap S3 for Azure Blob
 locally, implement the relevant interface and change its binding in

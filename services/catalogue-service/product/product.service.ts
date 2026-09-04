@@ -1,6 +1,6 @@
 import { injectable, inject } from 'inversify';
 import { randomUUID } from 'crypto';
-import { TYPES } from '../infra/di/types';
+import { TYPES } from '../utils/di/types';
 import { EventPublisher } from '../infra/events/event-publisher';
 import { MediaStorage } from '../infra/storage/media-storage';
 import { Product } from './product';
