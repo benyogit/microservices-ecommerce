@@ -6,4 +6,5 @@ export interface SignedUploadUrl {
 
 export interface MediaStorage {
   getUploadUrl(key: string, contentType?: string): Promise<SignedUploadUrl>;
+  getPublicUrl(key: string): string;
 }

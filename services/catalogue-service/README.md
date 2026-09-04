@@ -15,9 +15,10 @@ to MongoDB and publishes domain events to Kafka on create/delete.
   without touching the services)
 - `infra/kafka/producer.ts` — `KafkaEventPublisher`, the current
   `EventPublisher` implementation
-- `infra/storage/media-storage.ts` — `MediaStorage` interface: returns a
-  signed URL clients can upload an image/video to directly, without the
-  service caring which provider is behind it (S3, Azure Blob, ...)
+- `infra/storage/media-storage.ts` — `MediaStorage` interface: a signed
+  URL to upload an image/video to (`getUploadUrl`) and the public/CDN URL
+  to read it back (`getPublicUrl`), without the service caring which
+  provider is behind it (S3, Azure Blob, ...)
 - `infra/storage/s3-media-storage.ts` — `S3MediaStorage`, the current
   `MediaStorage` implementation (S3 presigned PUT URLs)
 - `utils/http/asyncHandler.ts` — wraps async route handlers so rejected
@@ -54,8 +55,9 @@ locally, implement the relevant interface and change its binding in
 | GET    | `/health`         | Liveness check      |
 | GET    | `/products`      | List products      |
 | GET    | `/products/:id`  | Get a product      |
-| POST   | `/products`      | Create a product (validated body); returns `{ product, imageUploadUrl }` — the client uploads the image directly to `imageUploadUrl` (a signed PUT URL) |
+| POST   | `/products`      | Create a product (validated body); returns `{ product, imageUploadUrl }` — the client uploads the product's first image directly to `imageUploadUrl` (a signed PUT URL) |
 | DELETE | `/products/:id`  | Delete a product    |
+| POST   | `/products/:id/images` | Add another image to a product (validated body, optional `contentType`); returns `{ image, uploadUrl }` |
 | GET    | `/categories`     | List categories     |
 | GET    | `/categories/:id` | Get a category      |
 | POST   | `/categories`     | Create a category (validated body) |
@@ -93,6 +95,10 @@ without needing this repo. Keep it in sync with `product/product.routes.ts`
 | `STORAGE_BUCKET`   | `catalogue-media`         |
 | `AWS_REGION`       | `us-east-1`               |
 | `STORAGE_UPLOAD_URL_TTL_SECONDS` | `900`       |
+| `STORAGE_PUBLIC_BASE_URL` | unset — falls back to the bucket's S3 URL |
+
+`STORAGE_PUBLIC_BASE_URL` lets you put a CDN (e.g. CloudFront) in front of
+the bucket; when unset, `getPublicUrl` returns the bucket's own S3 URL.
 
 AWS credentials for `S3MediaStorage` are picked up from the standard AWS
 SDK credential chain (env vars, shared config, instance/task role) — none
@@ -100,7 +106,8 @@ are hardcoded here.
 
 ## Events published
 
-- `PRODUCT_TOPIC` (default `catalogue.product`): `product.created`, `product.deleted`
+- `PRODUCT_TOPIC` (default `catalogue.product`): `product.created`,
+  `product.deleted`, `product.image_added`
 - `CATEGORY_TOPIC` (default `catalogue.category`): `category.created`, `category.deleted`
 
 ## Auth

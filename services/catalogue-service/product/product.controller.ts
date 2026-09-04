@@ -30,4 +30,13 @@ export class ProductController {
     await this.service.removeProduct(req.params.id);
     res.status(204).send();
   };
+
+  addImage = async (req: Request, res: Response): Promise<void> => {
+    const result = await this.service.addProductImage(req.params.id, req.body.contentType);
+    if (!result) {
+      res.status(404).json({ error: 'Product not found' });
+      return;
+    }
+    res.status(201).json(result);
+  };
 }

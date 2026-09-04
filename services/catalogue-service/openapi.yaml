@@ -30,8 +30,9 @@ paths:
       operationId: createProduct
       summary: Create a product
       description: >
-        Creates the product and returns a signed URL the client uploads the
-        product image to directly (see MediaStorage in the service README).
+        Creates the product with one image entry and returns a signed URL
+        the client uploads that image to directly (see MediaStorage in the
+        service README). Use POST /products/{id}/images to add more.
       tags: [Products]
       requestBody:
         required: true
@@ -82,6 +83,42 @@ paths:
       responses:
         '204':
           description: Product deleted
+
+  /products/{id}/images:
+    post:
+      operationId: addProductImage
+      summary: Add an image to a product
+      description: >
+        Creates a new image entry on the product and returns a signed URL
+        the client uploads that image to directly.
+      tags: [Products]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddProductImageRequest'
+      responses:
+        '201':
+          description: Image added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AddProductImageResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
 
   /categories:
     get:
@@ -163,7 +200,7 @@ components:
   schemas:
     Product:
       type: object
-      required: [id, name, description, price, categoryId, imageKey]
+      required: [id, name, description, price, categoryId, images]
       properties:
         id:
           type: string
@@ -176,9 +213,40 @@ components:
           format: double
         categoryId:
           type: string
-        imageKey:
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductImage'
+
+    ProductImage:
+      type: object
+      required: [key, url]
+      properties:
+        key:
           type: string
-          description: Storage key for the product's image (see MediaStorage).
+          description: Storage key for the image (see MediaStorage).
+        url:
+          type: string
+          format: uri
+          description: Public/CDN URL to display the image once uploaded.
+
+    AddProductImageRequest:
+      type: object
+      properties:
+        contentType:
+          type: string
+          description: Optional MIME type hint for the signed upload URL.
+
+    AddProductImageResponse:
+      type: object
+      required: [image, uploadUrl]
+      properties:
+        image:
+          $ref: '#/components/schemas/ProductImage'
+        uploadUrl:
+          type: string
+          format: uri
+          description: Signed URL the client uploads this image to directly.
 
     CreateProductRequest:
       type: object

@@ -8,3 +8,9 @@ export const createProductSchema = z.object({
 });
 
 export type CreateProductInput = z.infer<typeof createProductSchema>;
+
+export const addProductImageSchema = z.object({
+  contentType: z.string().min(1).optional(),
+});
+
+export type AddProductImageInput = z.infer<typeof addProductImageSchema>;
