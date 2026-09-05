@@ -5,10 +5,16 @@ to MongoDB and publishes domain events to Kafka on create/delete.
 
 ## Structure
 
-- `product/` — `ProductRepository` interface + `MongoProductRepository`,
-  `ProductService` (business logic + Kafka events), `ProductController`,
-  routes, and a `product.schema.ts` zod schema for request validation
-- `category/` — same shape as `product/`, for categories
+- `features/product/` — `ProductRepository` interface +
+  `MongoProductRepository`, `ProductService` (business logic + Kafka
+  events), `ProductController`, routes, and a `product.schema.ts` zod
+  schema for request validation
+- `features/category/` — same shape as `features/product/`, for categories
+- `features/` holds domain code, one self-contained folder per resource
+  (controller + routes + service + repository + schema together) rather
+  than splitting by technical layer — a domain-first layout that scales
+  better as more resources are added, and keeps everything needed to
+  understand or extract one resource in one place
 - `infra/db/mongo.ts` — injectable `MongoConnection`
 - `infra/events/event-publisher.ts` — `EventPublisher` interface (lets the
   Kafka producer be swapped for another queue, or wrapped with caching,
@@ -74,17 +80,19 @@ Run with `npm run dev` (or `npm run build && npm start`). Listens on `PORT`
 ## Request validation
 
 `POST /products` and `POST /categories` validate the request body against
-a zod schema (`product/product.schema.ts`, `category/category.schema.ts`)
-via the `validateBody` middleware. An invalid body gets a `400` with
-field-level errors instead of reaching the service/repository layer.
+a zod schema (`features/product/product.schema.ts`,
+`features/category/category.schema.ts`) via the `validateBody` middleware.
+An invalid body gets a `400` with field-level errors instead of reaching
+the service/repository layer.
 
 ## OpenAPI
 
 `openapi.yaml` at the service root is the source of truth for this
 service's HTTP API and is served live at `GET /openapi.yaml`, so other
 services (an API gateway, a client generator, another team) can fetch it
-without needing this repo. Keep it in sync with `product/product.routes.ts`
-/ `category/category.routes.ts` and the zod schemas when the API changes.
+without needing this repo. Keep it in sync with
+`features/product/product.routes.ts` / `features/category/category.routes.ts`
+and the zod schemas when the API changes.
 
 ## Configuration
 

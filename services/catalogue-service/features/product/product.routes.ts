@@ -1,8 +1,8 @@
 import { Router } from 'express';
-import { asyncHandler } from '../utils/http/asyncHandler';
-import { validateBody } from '../utils/http/validate';
-import { container } from '../utils/di/container';
-import { TYPES } from '../utils/di/types';
+import { asyncHandler } from '../../utils/http/asyncHandler';
+import { validateBody } from '../../utils/http/validate';
+import { container } from '../../utils/di/container';
+import { TYPES } from '../../utils/di/types';
 import { ProductController } from './product.controller';
 import { addProductImageSchema, createProductSchema } from './product.schema';
 

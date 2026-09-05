@@ -1,8 +1,8 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import express, { Express, NextFunction, Request, Response } from 'express';
-import { categoryRouter } from './category/category.routes';
-import { productRouter } from './product/product.routes';
+import { categoryRouter } from './features/category/category.routes';
+import { productRouter } from './features/product/product.routes';
 
 export function createApp(): Express {
   const app = express();

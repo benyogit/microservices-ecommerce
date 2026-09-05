@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify';
 import { Collection } from 'mongodb';
-import { TYPES } from '../utils/di/types';
-import { MongoConnection } from '../infra/db/mongo';
+import { TYPES } from '../../utils/di/types';
+import { MongoConnection } from '../../infra/db/mongo';
 import { Category } from './category';
 
 const COLLECTION_NAME = 'categories';
