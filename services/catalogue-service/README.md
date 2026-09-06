@@ -63,7 +63,7 @@ locally, implement the relevant interface and change its binding in
 | Method | Path             | Description       |
 | ------ | ---------------- | ------------------ |
 | GET    | `/health`         | Liveness check      |
-| GET    | `/products`      | List products      |
+| GET    | `/products`      | List/search products — optional `categoryId`, `q`, `minPrice`, `maxPrice` query params, combinable |
 | GET    | `/products/:id`  | Get a product      |
 | POST   | `/products`      | Create a product (validated body); returns `{ product, imageUploadUrl }` — the client uploads the product's first image directly to `imageUploadUrl` (a signed PUT URL) |
 | DELETE | `/products/:id`  | Delete a product    |
@@ -82,8 +82,28 @@ Run with `npm run dev` (or `npm run build && npm start`). Listens on `PORT`
 `POST /products` and `POST /categories` validate the request body against
 a zod schema (`features/product/product.schema.ts`,
 `features/category/category.schema.ts`) via the `validateBody` middleware.
-An invalid body gets a `400` with field-level errors instead of reaching
-the service/repository layer.
+`GET /products`'s query params are validated the same way via
+`validateQuery` (e.g. rejects `minPrice > maxPrice`, non-numeric prices).
+An invalid request gets a `400` with field-level errors instead of
+reaching the service/repository layer.
+
+## Product/category relationship
+
+`Category` has no reference to products at all. `Product.categoryIds` is
+a bounded array (a product realistically has a handful of categories),
+which is the side MongoDB modeling favors for this kind of many-to-many:
+storing the reverse (`Category.productIds`) would make each category
+document an unbounded, frequently-contended array as products are added.
+"Products in category X" is a query, not a stored relationship:
+`GET /products?categoryId=X`.
+
+That query — plus `q` (text search) and price range — is served by one
+compound index on the products collection:
+`{ categoryIds: 1, name: 'text', description: 'text' }`, lazily created
+by `MongoProductRepository` on first use. MongoDB allows non-text fields
+in a text index as long as they're used for equality matches, which is
+exactly what `categoryIds: categoryId` is, so category filtering and text
+search share a single index instead of needing two separate lookups.
 
 ## OpenAPI
 

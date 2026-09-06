@@ -2,13 +2,15 @@ import { injectable, inject } from 'inversify';
 import { Request, Response } from 'express';
 import { TYPES } from '../../utils/di/types';
 import { ProductService } from './product.service';
+import { ListProductsQuery } from './product.schema';
 
 @injectable()
 export class ProductController {
   constructor(@inject(TYPES.ProductService) private readonly service: ProductService) {}
 
-  list = async (_req: Request, res: Response): Promise<void> => {
-    const products = await this.service.listProducts();
+  list = async (req: Request, res: Response): Promise<void> => {
+    const query = req.validatedQuery as ListProductsQuery;
+    const products = await this.service.listProducts(query);
     res.json(products);
   };
 

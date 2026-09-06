@@ -4,7 +4,7 @@ import { TYPES } from '../../utils/di/types';
 import { EventPublisher } from '../../infra/events/event-publisher';
 import { MediaStorage } from '../../infra/storage/media-storage';
 import { Product, ProductImage, ProductResponse } from './product';
-import { ProductRepository } from './product.repository';
+import { ProductFilter, ProductRepository } from './product.repository';
 
 const PRODUCT_TOPIC = process.env.PRODUCT_TOPIC ?? 'catalogue.product';
 
@@ -38,8 +38,8 @@ export class ProductService {
     return product ? this.toResponse(product) : null;
   }
 
-  async listProducts(): Promise<ProductResponse[]> {
-    const products = await this.repository.findAll();
+  async listProducts(filter?: ProductFilter): Promise<ProductResponse[]> {
+    const products = await this.repository.findAll(filter);
     return products.map((product) => this.toResponse(product));
   }
 

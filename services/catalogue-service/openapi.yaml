@@ -15,8 +15,34 @@ paths:
   /products:
     get:
       operationId: listProducts
-      summary: List products
+      summary: List / search products
+      description: >
+        All query parameters are optional and combinable. `categoryId`
+        matches products whose categoryIds array contains it; `q` does a
+        text search over name/description; minPrice/maxPrice filter by
+        price range.
       tags: [Products]
+      parameters:
+        - name: categoryId
+          in: query
+          schema:
+            type: string
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: minPrice
+          in: query
+          schema:
+            type: number
+            format: double
+            minimum: 0
+        - name: maxPrice
+          in: query
+          schema:
+            type: number
+            format: double
+            exclusiveMinimum: 0
       responses:
         '200':
           description: List of products
@@ -26,6 +52,12 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/Product'
+        '400':
+          description: Invalid query parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
     post:
       operationId: createProduct
       summary: Create a product
@@ -200,7 +232,7 @@ components:
   schemas:
     Product:
       type: object
-      required: [id, name, description, price, categoryId, images]
+      required: [id, name, description, price, categoryIds, images]
       properties:
         id:
           type: string
@@ -211,8 +243,11 @@ components:
         price:
           type: number
           format: double
-        categoryId:
-          type: string
+        categoryIds:
+          type: array
+          items:
+            type: string
+          minItems: 1
         images:
           type: array
           items:
@@ -250,7 +285,7 @@ components:
 
     CreateProductRequest:
       type: object
-      required: [name, description, price, categoryId]
+      required: [name, description, price, categoryIds]
       properties:
         name:
           type: string
@@ -264,9 +299,12 @@ components:
           type: number
           format: double
           exclusiveMinimum: 0
-        categoryId:
-          type: string
-          minLength: 1
+        categoryIds:
+          type: array
+          items:
+            type: string
+            minLength: 1
+          minItems: 1
 
     CreateProductResponse:
       type: object
