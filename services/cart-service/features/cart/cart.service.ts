@@ -5,6 +5,12 @@ import { CatalogueClient } from '../../infra/catalogue/catalogue-client';
 import { AddCartItemInput } from './cart.schema';
 import { Cart } from './cart';
 import { CartRepository } from './cart.repository';
+import {
+  cartClearedEventSchema,
+  cartItemAddedEventSchema,
+  cartItemQuantityUpdatedEventSchema,
+  cartItemRemovedEventSchema,
+} from './cart.events';
 
 const CART_TOPIC = process.env.CART_TOPIC ?? 'cart.events';
 
@@ -47,12 +53,15 @@ export class CartService {
     cart.updatedAt = new Date().toISOString();
 
     await this.repository.saveCart(cart);
-    await this.eventPublisher.publish(CART_TOPIC, {
-      type: 'cart.item_added',
-      userId,
-      productId: product.id,
-      quantity: input.quantity,
-    });
+    await this.eventPublisher.publish(
+      CART_TOPIC,
+      cartItemAddedEventSchema.parse({
+        type: 'cart.item_added',
+        userId,
+        productId: product.id,
+        quantity: input.quantity,
+      }),
+    );
 
     return cart;
   }
@@ -66,12 +75,15 @@ export class CartService {
     cart.updatedAt = new Date().toISOString();
 
     await this.repository.saveCart(cart);
-    await this.eventPublisher.publish(CART_TOPIC, {
-      type: 'cart.item_quantity_updated',
-      userId,
-      productId,
-      quantity,
-    });
+    await this.eventPublisher.publish(
+      CART_TOPIC,
+      cartItemQuantityUpdatedEventSchema.parse({
+        type: 'cart.item_quantity_updated',
+        userId,
+        productId,
+        quantity,
+      }),
+    );
 
     return cart;
   }
@@ -82,13 +94,19 @@ export class CartService {
     cart.updatedAt = new Date().toISOString();
 
     await this.repository.saveCart(cart);
-    await this.eventPublisher.publish(CART_TOPIC, { type: 'cart.item_removed', userId, productId });
+    await this.eventPublisher.publish(
+      CART_TOPIC,
+      cartItemRemovedEventSchema.parse({ type: 'cart.item_removed', userId, productId }),
+    );
 
     return cart;
   }
 
   async clearCart(userId: string): Promise<void> {
     await this.repository.deleteCart(userId);
-    await this.eventPublisher.publish(CART_TOPIC, { type: 'cart.cleared', userId });
+    await this.eventPublisher.publish(
+      CART_TOPIC,
+      cartClearedEventSchema.parse({ type: 'cart.cleared', userId }),
+    );
   }
 }

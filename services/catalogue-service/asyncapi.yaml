@@ -1,0 +1,178 @@
+asyncapi: 3.1.0
+info:
+  title: Catalogue Service Events
+  version: 1.0.0
+  description: >
+    Domain events published by catalogue-service to Kafka on product and
+    category create/delete. Payloads are validated against these schemas
+    (via zod, see features/product/product.events.ts and
+    features/category/category.events.ts) before publish, so a producer
+    bug can't silently put a malformed event on the wire.
+
+servers:
+  kafka:
+    host: '{KAFKA_BROKERS}'
+    protocol: kafka
+    description: Configured via the KAFKA_BROKERS env var (see README).
+    variables:
+      KAFKA_BROKERS:
+        default: localhost:9092
+
+channels:
+  catalogueProduct:
+    address: catalogue.product
+    description: Configurable via PRODUCT_TOPIC (default catalogue.product).
+    messages:
+      productCreated:
+        $ref: '#/components/messages/productCreated'
+      productDeleted:
+        $ref: '#/components/messages/productDeleted'
+      productImageAdded:
+        $ref: '#/components/messages/productImageAdded'
+
+  catalogueCategory:
+    address: catalogue.category
+    description: Configurable via CATEGORY_TOPIC (default catalogue.category).
+    messages:
+      categoryCreated:
+        $ref: '#/components/messages/categoryCreated'
+      categoryDeleted:
+        $ref: '#/components/messages/categoryDeleted'
+
+operations:
+  publishProductEvents:
+    action: send
+    channel:
+      $ref: '#/channels/catalogueProduct'
+    messages:
+      - $ref: '#/channels/catalogueProduct/messages/productCreated'
+      - $ref: '#/channels/catalogueProduct/messages/productDeleted'
+      - $ref: '#/channels/catalogueProduct/messages/productImageAdded'
+
+  publishCategoryEvents:
+    action: send
+    channel:
+      $ref: '#/channels/catalogueCategory'
+    messages:
+      - $ref: '#/channels/catalogueCategory/messages/categoryCreated'
+      - $ref: '#/channels/catalogueCategory/messages/categoryDeleted'
+
+components:
+  messages:
+    productCreated:
+      name: product.created
+      title: Product created
+      summary: A new product was created, with its first image key.
+      payload:
+        $ref: '#/components/schemas/ProductCreatedPayload'
+
+    productDeleted:
+      name: product.deleted
+      title: Product deleted
+      payload:
+        $ref: '#/components/schemas/ProductDeletedPayload'
+
+    productImageAdded:
+      name: product.image_added
+      title: Image added to a product
+      payload:
+        $ref: '#/components/schemas/ProductImageAddedPayload'
+
+    categoryCreated:
+      name: category.created
+      title: Category created
+      payload:
+        $ref: '#/components/schemas/CategoryCreatedPayload'
+
+    categoryDeleted:
+      name: category.deleted
+      title: Category deleted
+      payload:
+        $ref: '#/components/schemas/CategoryDeletedPayload'
+
+  schemas:
+    Product:
+      type: object
+      required: [id, name, description, price, categoryIds, images]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          format: double
+        categoryIds:
+          type: array
+          items:
+            type: string
+        images:
+          type: array
+          description: Storage keys (see MediaStorage) — not resolved URLs.
+          items:
+            type: string
+
+    Category:
+      type: object
+      required: [id, name, description]
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+
+    ProductCreatedPayload:
+      type: object
+      required: [type, product]
+      properties:
+        type:
+          type: string
+          const: product.created
+        product:
+          $ref: '#/components/schemas/Product'
+
+    ProductDeletedPayload:
+      type: object
+      required: [type, productId]
+      properties:
+        type:
+          type: string
+          const: product.deleted
+        productId:
+          type: string
+
+    ProductImageAddedPayload:
+      type: object
+      required: [type, productId, key]
+      properties:
+        type:
+          type: string
+          const: product.image_added
+        productId:
+          type: string
+        key:
+          type: string
+
+    CategoryCreatedPayload:
+      type: object
+      required: [type, category]
+      properties:
+        type:
+          type: string
+          const: category.created
+        category:
+          $ref: '#/components/schemas/Category'
+
+    CategoryDeletedPayload:
+      type: object
+      required: [type, categoryId]
+      properties:
+        type:
+          type: string
+          const: category.deleted
+        categoryId:
+          type: string

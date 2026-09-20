@@ -1,0 +1,123 @@
+asyncapi: 3.1.0
+info:
+  title: Cart Service Events
+  version: 1.0.0
+  description: >
+    Domain events published by cart-service to Kafka on cart activity.
+    Payloads are validated against these schemas (via zod, see
+    features/cart/cart.events.ts) before publish. Cart activity is a
+    stronger intent signal than a page view, so this topic is meant to be
+    consumed by recommendation-service once it exists.
+
+servers:
+  kafka:
+    host: '{KAFKA_BROKERS}'
+    protocol: kafka
+    description: Configured via the KAFKA_BROKERS env var (see README).
+    variables:
+      KAFKA_BROKERS:
+        default: localhost:9092
+
+channels:
+  cartEvents:
+    address: cart.events
+    description: Configurable via CART_TOPIC (default cart.events).
+    messages:
+      itemAdded:
+        $ref: '#/components/messages/itemAdded'
+      itemQuantityUpdated:
+        $ref: '#/components/messages/itemQuantityUpdated'
+      itemRemoved:
+        $ref: '#/components/messages/itemRemoved'
+      cartCleared:
+        $ref: '#/components/messages/cartCleared'
+
+operations:
+  publishCartEvents:
+    action: send
+    channel:
+      $ref: '#/channels/cartEvents'
+    messages:
+      - $ref: '#/channels/cartEvents/messages/itemAdded'
+      - $ref: '#/channels/cartEvents/messages/itemQuantityUpdated'
+      - $ref: '#/channels/cartEvents/messages/itemRemoved'
+      - $ref: '#/channels/cartEvents/messages/cartCleared'
+
+components:
+  messages:
+    itemAdded:
+      name: cart.item_added
+      title: Item added to a cart
+      payload:
+        $ref: '#/components/schemas/ItemAddedPayload'
+
+    itemQuantityUpdated:
+      name: cart.item_quantity_updated
+      title: Cart item quantity changed
+      payload:
+        $ref: '#/components/schemas/ItemQuantityUpdatedPayload'
+
+    itemRemoved:
+      name: cart.item_removed
+      title: Item removed from a cart
+      payload:
+        $ref: '#/components/schemas/ItemRemovedPayload'
+
+    cartCleared:
+      name: cart.cleared
+      title: Cart cleared
+      payload:
+        $ref: '#/components/schemas/CartClearedPayload'
+
+  schemas:
+    ItemAddedPayload:
+      type: object
+      required: [type, userId, productId, quantity]
+      properties:
+        type:
+          type: string
+          const: cart.item_added
+        userId:
+          type: string
+        productId:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+
+    ItemQuantityUpdatedPayload:
+      type: object
+      required: [type, userId, productId, quantity]
+      properties:
+        type:
+          type: string
+          const: cart.item_quantity_updated
+        userId:
+          type: string
+        productId:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+
+    ItemRemovedPayload:
+      type: object
+      required: [type, userId, productId]
+      properties:
+        type:
+          type: string
+          const: cart.item_removed
+        userId:
+          type: string
+        productId:
+          type: string
+
+    CartClearedPayload:
+      type: object
+      required: [type, userId]
+      properties:
+        type:
+          type: string
+          const: cart.cleared
+        userId:
+          type: string

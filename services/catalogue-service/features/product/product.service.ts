@@ -5,6 +5,11 @@ import { EventPublisher } from '../../infra/events/event-publisher';
 import { MediaStorage } from '../../infra/storage/media-storage';
 import { Product, ProductImage, ProductResponse } from './product';
 import { ProductFilter, ProductRepository } from './product.repository';
+import {
+  productCreatedEventSchema,
+  productDeletedEventSchema,
+  productImageAddedEventSchema,
+} from './product.events';
 
 const PRODUCT_TOPIC = process.env.PRODUCT_TOPIC ?? 'catalogue.product';
 
@@ -49,7 +54,10 @@ export class ProductService {
     const product: Product = { id, images: [key], ...input };
 
     await this.repository.insert(product);
-    await this.eventPublisher.publish(PRODUCT_TOPIC, { type: 'product.created', product });
+    await this.eventPublisher.publish(
+      PRODUCT_TOPIC,
+      productCreatedEventSchema.parse({ type: 'product.created', product }),
+    );
     const { uploadUrl } = await this.mediaStorage.getUploadUrl(key);
 
     return { product: this.toResponse(product), imageUploadUrl: uploadUrl };
@@ -63,17 +71,19 @@ export class ProductService {
     const { uploadUrl } = await this.mediaStorage.getUploadUrl(key, contentType);
 
     await this.repository.addImage(id, key);
-    await this.eventPublisher.publish(PRODUCT_TOPIC, {
-      type: 'product.image_added',
-      productId: id,
-      key,
-    });
+    await this.eventPublisher.publish(
+      PRODUCT_TOPIC,
+      productImageAddedEventSchema.parse({ type: 'product.image_added', productId: id, key }),
+    );
 
     return { image: { key, url: this.mediaStorage.getPublicUrl(key) }, uploadUrl };
   }
 
   async removeProduct(id: string): Promise<void> {
     await this.repository.delete(id);
-    await this.eventPublisher.publish(PRODUCT_TOPIC, { type: 'product.deleted', productId: id });
+    await this.eventPublisher.publish(
+      PRODUCT_TOPIC,
+      productDeletedEventSchema.parse({ type: 'product.deleted', productId: id }),
+    );
   }
 }

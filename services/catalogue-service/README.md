@@ -7,8 +7,9 @@ to MongoDB and publishes domain events to Kafka on create/delete.
 
 - `features/product/` — `ProductRepository` interface +
   `MongoProductRepository`, `ProductService` (business logic + Kafka
-  events), `ProductController`, routes, and a `product.schema.ts` zod
-  schema for request validation
+  events), `ProductController`, routes, `product.schema.ts` (zod, request
+  validation), and `product.events.ts` (zod, Kafka event payload
+  validation)
 - `features/category/` — same shape as `features/product/`, for categories
 - `features/` holds domain code, one self-contained folder per resource
   (controller + routes + service + repository + schema together) rather
@@ -42,11 +43,14 @@ to MongoDB and publishes domain events to Kafka on create/delete.
 - `utils/` holds this kind of internal wiring/helpers; `infra/` is
   reserved for layers that talk to an outer service (Mongo, Kafka, S3)
 - `app.ts` — builds the Express app, mounts the routers, and serves the
-  OpenAPI spec at `GET /openapi.yaml`
+  OpenAPI spec at `GET /openapi.yaml` and the AsyncAPI spec at
+  `GET /asyncapi.yaml`
 - `server.ts` — starts the HTTP server
 - `index.ts` — single shared entry point re-exporting `product` and
   `category`, so each subfolder doesn't need its own duplicate `index.ts`
 - `openapi.yaml` — the OpenAPI 3.0 spec for this service's HTTP API
+- `asyncapi.yaml` — the AsyncAPI 3.1 spec for the Kafka events this
+  service publishes
 
 ## Dependency injection
 
@@ -73,6 +77,7 @@ locally, implement the relevant interface and change its binding in
 | POST   | `/categories`     | Create a category (validated body) |
 | DELETE | `/categories/:id` | Delete a category    |
 | GET    | `/openapi.yaml`   | The OpenAPI 3.0 spec for this API |
+| GET    | `/asyncapi.yaml`  | The AsyncAPI 3.1 spec for the events this service publishes |
 
 Run with `npm run dev` (or `npm run build && npm start`). Listens on `PORT`
 (default `3000`).
@@ -141,6 +146,21 @@ are hardcoded here.
 - `PRODUCT_TOPIC` (default `catalogue.product`): `product.created`,
   `product.deleted`, `product.image_added`
 - `CATEGORY_TOPIC` (default `catalogue.category`): `category.created`, `category.deleted`
+
+Every event is validated against a zod schema (`product.events.ts`,
+`category.events.ts`) immediately before publish — a bug that would
+silently put a malformed event on the wire throws instead, the same way
+`validateBody` catches a malformed HTTP request before it reaches a
+service.
+
+## AsyncAPI
+
+`asyncapi.yaml` documents these events the way `openapi.yaml` documents
+the HTTP API — channels, messages, and payload schemas matching the zod
+schemas above — and is served live at `GET /asyncapi.yaml`, so a consumer
+service can discover the event contract without reading this repo's code.
+Keep it in sync with `features/product/product.events.ts` /
+`features/category/category.events.ts` when an event's shape changes.
 
 ## Auth
 

@@ -4,6 +4,7 @@ import { TYPES } from '../../utils/di/types';
 import { EventPublisher } from '../../infra/events/event-publisher';
 import { Category } from './category';
 import { CategoryRepository } from './category.repository';
+import { categoryCreatedEventSchema, categoryDeletedEventSchema } from './category.events';
 
 const CATEGORY_TOPIC = process.env.CATEGORY_TOPIC ?? 'catalogue.category';
 
@@ -25,12 +26,18 @@ export class CategoryService {
   async createCategory(input: Omit<Category, 'id'>): Promise<Category> {
     const category: Category = { id: randomUUID(), ...input };
     await this.repository.insert(category);
-    await this.eventPublisher.publish(CATEGORY_TOPIC, { type: 'category.created', category });
+    await this.eventPublisher.publish(
+      CATEGORY_TOPIC,
+      categoryCreatedEventSchema.parse({ type: 'category.created', category }),
+    );
     return category;
   }
 
   async removeCategory(id: string): Promise<void> {
     await this.repository.delete(id);
-    await this.eventPublisher.publish(CATEGORY_TOPIC, { type: 'category.deleted', categoryId: id });
+    await this.eventPublisher.publish(
+      CATEGORY_TOPIC,
+      categoryDeletedEventSchema.parse({ type: 'category.deleted', categoryId: id }),
+    );
   }
 }

@@ -21,6 +21,11 @@ export function createApp(): Express {
     res.type('application/yaml').send(spec);
   });
 
+  app.get('/asyncapi.yaml', (_req: Request, res: Response) => {
+    const spec = readFileSync(join(__dirname, 'asyncapi.yaml'), 'utf-8');
+    res.type('application/yaml').send(spec);
+  });
+
   app.use((err: Error, _req: Request, res: Response, _next: NextFunction) => {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });

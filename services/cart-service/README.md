@@ -8,7 +8,8 @@ stale carts automatically instead of needing a cleanup job.
 
 - `features/cart/` — `Cart`/`CartItem` types, `CartRepository` interface +
   `RedisCartRepository`, `CartService` (business logic + Kafka events),
-  `CartController`, routes, and `cart.schema.ts` (zod)
+  `CartController`, routes, `cart.schema.ts` (zod, request validation),
+  and `cart.events.ts` (zod, Kafka event payload validation)
 - `infra/db/redis.ts` — injectable `RedisConnection`. Bounds the initial
   connect attempt (`REDIS_CONNECT_TIMEOUT_MS` + a capped
   `reconnectStrategy`) so a request fails fast with a 500 instead of
@@ -51,6 +52,7 @@ implementation and changing one binding — no changes to `CartService`.
 | PATCH  | `/cart/items/:productId`  | Set a line item's quantity |
 | DELETE | `/cart/items/:productId`  | Remove a line item |
 | GET    | `/openapi.yaml`           | The OpenAPI 3.0 spec for this API |
+| GET    | `/asyncapi.yaml`          | The AsyncAPI 3.1 spec for the events this service publishes |
 
 Every `/cart*` route requires an `X-User-Id` header (see `currentUser.ts`
 above) — missing it is a `401`.
@@ -91,6 +93,17 @@ finalizing an order — don't trust the cart's snapshot for money math.
   `cart.item_quantity_updated`, `cart.item_removed`, `cart.cleared` — cart
   activity is a strong signal for recommendation-service later (an item
   added to a cart is stronger intent than a page view).
+
+Every event is validated against a zod schema (`cart.events.ts`)
+immediately before publish, the same way `validateBody` validates
+incoming HTTP requests.
+
+## AsyncAPI
+
+`asyncapi.yaml` documents these events — channels, messages, and payload
+schemas matching `cart.events.ts` — served live at `GET /asyncapi.yaml`,
+so a consumer (recommendation-service, eventually) can discover the
+contract without reading this repo's code.
 
 ## Auth
 
