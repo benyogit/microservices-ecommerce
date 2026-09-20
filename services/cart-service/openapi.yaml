@@ -1,0 +1,240 @@
+openapi: 3.0.3
+info:
+  title: Cart Service API
+  description: >
+    Manages per-user shopping carts, backed by Redis. Validates products
+    against catalogue-service synchronously when items are added; reads
+    (GET /cart) are served entirely from Redis and don't depend on
+    catalogue-service being up. Auth is not handled by this service — the
+    API gateway is expected to validate the caller and forward their user
+    id via the X-User-Id header.
+  version: 1.0.0
+servers:
+  - url: http://localhost:3001
+    description: Local development
+
+paths:
+  /cart:
+    get:
+      operationId: getCart
+      summary: Get the caller's cart
+      description: Returns an empty cart (not a 404) if none exists yet.
+      tags: [Cart]
+      security: [{ userId: [] }]
+      responses:
+        '200':
+          description: The cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '401':
+          description: Missing X-User-Id header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      operationId: clearCart
+      summary: Clear the caller's cart
+      tags: [Cart]
+      security: [{ userId: [] }]
+      responses:
+        '204':
+          description: Cart cleared
+        '401':
+          description: Missing X-User-Id header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /cart/items:
+    post:
+      operationId: addCartItem
+      summary: Add an item to the cart
+      description: >
+        Looks up the product in catalogue-service to confirm it exists and
+        snapshot its current name/price. If the product is already in the
+        cart, increases its quantity and refreshes the snapshot instead of
+        adding a duplicate line item.
+      tags: [Cart]
+      security: [{ userId: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCartItemRequest'
+      responses:
+        '201':
+          description: Item added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Missing X-User-Id header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Product not found in catalogue-service
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /cart/items/{productId}:
+    patch:
+      operationId: updateCartItem
+      summary: Set a line item's quantity
+      tags: [Cart]
+      security: [{ userId: [] }]
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCartItemRequest'
+      responses:
+        '200':
+          description: Updated cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        '401':
+          description: Missing X-User-Id header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Item not in cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      operationId: removeCartItem
+      summary: Remove a line item from the cart
+      tags: [Cart]
+      security: [{ userId: [] }]
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+      responses:
+        '200':
+          description: Updated cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '401':
+          description: Missing X-User-Id header
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+components:
+  securitySchemes:
+    userId:
+      type: apiKey
+      in: header
+      name: X-User-Id
+      description: Forwarded by the API gateway after JWT validation.
+
+  parameters:
+    ProductId:
+      name: productId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    CartItem:
+      type: object
+      required: [productId, name, unitPrice, quantity, addedAt]
+      properties:
+        productId:
+          type: string
+        name:
+          type: string
+        unitPrice:
+          type: number
+          format: double
+        quantity:
+          type: integer
+          minimum: 1
+        addedAt:
+          type: string
+          format: date-time
+
+    Cart:
+      type: object
+      required: [userId, items, updatedAt]
+      properties:
+        userId:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        updatedAt:
+          type: string
+          format: date-time
+
+    AddCartItemRequest:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId:
+          type: string
+          minLength: 1
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 100
+
+    UpdateCartItemRequest:
+      type: object
+      required: [quantity]
+      properties:
+        quantity:
+          type: integer
+          minimum: 1
+          maximum: 100
+
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: string
+
+    ValidationError:
+      type: object
+      required: [error, details]
+      properties:
+        error:
+          type: string
+        details:
+          type: object
+          description: Zod's flattened error shape (fieldErrors / formErrors).

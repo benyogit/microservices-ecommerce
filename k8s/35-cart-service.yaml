@@ -1,0 +1,70 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cart-service-config
+  namespace: catalogue
+data:
+  PORT: "3001"
+  REDIS_URL: redis://redis:6379
+  KAFKA_BROKERS: kafka:9092
+  KAFKA_CLIENT_ID: cart-service
+  CART_TOPIC: cart.events
+  CATALOGUE_SERVICE_URL: http://catalogue-service:3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cart-service
+  namespace: catalogue
+  labels:
+    app: cart-service
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: cart-service
+  template:
+    metadata:
+      labels:
+        app: cart-service
+    spec:
+      containers:
+        - name: cart-service
+          image: cart-service:local
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3001
+          envFrom:
+            - configMapRef:
+                name: cart-service-config
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3001
+            initialDelaySeconds: 10
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cart-service
+  namespace: catalogue
+spec:
+  selector:
+    app: cart-service
+  ports:
+    - port: 3001
+      targetPort: 3001

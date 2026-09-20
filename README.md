@@ -3,6 +3,17 @@
 ## Services
 
 - [`services/catalogue-service`](services/catalogue-service/README.md) — products and categories
+- [`services/cart-service`](services/cart-service/README.md) — per-user shopping carts (Redis)
+
+## Local development
+
+```
+docker compose up
+```
+
+Brings up the whole stack — Mongo, Kafka, Redis, `catalogue-service`, and
+`cart-service` — wired together, with hot reload on both services. See
+each service's README for its own env vars and API.
 
 ## Local Kubernetes
 

@@ -159,16 +159,19 @@ Gateway) or another dedicated service before requests reach it.
   `node:20-alpine`, runs as the non-root `node` user, and exposes a
   `HEALTHCHECK` against `GET /health`
 
-**Local development** (service + MongoDB + Kafka, with hot reload):
+**Local development** (whole stack, with hot reload):
 
 ```
 docker compose up
 ```
 
-This builds the `development` target with the repo bind-mounted into the
-container (so edits on the host reload the running server) and starts
-`mongo` and `kafka` (KRaft mode, no Zookeeper) alongside it. The API is at
-`http://localhost:3000`.
+Run from the **repo root**, not this directory — `docker-compose.yml`
+lives there now, since cart-service needs to reach catalogue-service and
+both need to share Kafka, so local dev brings up the whole stack (Mongo,
+Kafka, Redis, catalogue-service, cart-service) together rather than each
+service having its own isolated compose file. It builds the `development`
+target with this directory bind-mounted into the container (so edits on
+the host reload the running server). The API is at `http://localhost:3000`.
 
 **Cloud / production image**:
 

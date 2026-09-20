@@ -1,10 +1,11 @@
 # Local Kubernetes
 
-Runs `catalogue-service` (+ Mongo + Kafka) on a local [kind](https://kind.sigs.k8s.io/)
-cluster, fronted by an [ingress-nginx](https://kubernetes.github.io/ingress-nginx/)
-Ingress acting as the API gateway. Entirely free and local — nothing here
-talks to a cloud provider. Spin the cluster up when you want to demo it,
-delete it when you're done (see Teardown).
+Runs `catalogue-service` and `cart-service` (+ Mongo, Kafka, Redis) on a
+local [kind](https://kind.sigs.k8s.io/) cluster, fronted by an
+[ingress-nginx](https://kubernetes.github.io/ingress-nginx/) Ingress
+acting as the API gateway. Entirely free and local — nothing here talks
+to a cloud provider. Spin the cluster up when you want to demo it, delete
+it when you're done (see Teardown).
 
 Kubernetes itself has no built-in API gateway — `Ingress` is just a
 routing spec (host/path -> Service). `ingress-nginx` is the piece that
@@ -40,28 +41,32 @@ kubectl wait --namespace ingress-nginx \
 (That URL is kind's official ingress-nginx manifest for local clusters — check
 [kind's Ingress docs](https://kind.sigs.k8s.io/docs/user/ingress/) if it's moved.)
 
-## 3. Build and load the service image
+## 3. Build and load the service images
 
-`kind` doesn't pull from a registry — the image has to be loaded directly
-into the cluster's nodes:
+`kind` doesn't pull from a registry — each image has to be loaded
+directly into the cluster's nodes:
 
 ```
 docker build --target production -t catalogue-service:local services/catalogue-service
+docker build --target production -t cart-service:local services/cart-service
 kind load docker-image catalogue-service:local
+kind load docker-image cart-service:local
 ```
 
-Re-run both after any code change (there's no hot reload here, unlike
-`docker-compose.yml` — this setup mirrors a production deploy, not local
-dev).
+Re-run both build+load steps for a service after any code change in it —
+there's no hot reload here, unlike `docker-compose.yml` (this setup
+mirrors a production deploy, not local dev).
 
 ## 4. Apply the manifests
 
 ```
-kubectl apply -f k8s/00-namespace.yaml -f k8s/10-mongo.yaml -f k8s/20-kafka.yaml -f k8s/30-catalogue-service.yaml -f k8s/90-ingress.yaml
+kubectl apply -f k8s/
 ```
 
-(Numbered so `kubectl apply -f k8s/` alone also works — the namespace
-lands first, everything else can retry against it.)
+(Numbered filenames so this single command works — the namespace lands
+first, everything else can retry against it. To apply one service's
+manifest on its own instead: `kubectl apply -f k8s/00-namespace.yaml -f k8s/35-cart-service.yaml`
+etc.)
 
 Watch it come up:
 
@@ -69,19 +74,23 @@ Watch it come up:
 kubectl get pods -n catalogue -w
 ```
 
-`catalogue-service` runs 2 replicas here on purpose — the Ingress load
-balances across both, which is the actual reason to route through a
-gateway instead of hitting a pod directly.
+Both services run 2 replicas here on purpose — the Ingress load balances
+across both pods of whichever service you hit, which is the actual reason
+to route through a gateway instead of hitting a pod directly.
 
 ## 5. Try it
 
 ```
 curl http://localhost/catalogue/health
 curl http://localhost/catalogue/products
+curl -H "X-User-Id: demo-user" http://localhost/cart
 ```
 
-The Ingress strips the `/catalogue` prefix before forwarding, so these
-reach the service's own `/health` and `/products` routes unchanged.
+The Ingress strips the `/catalogue` or `/cart` prefix before forwarding,
+so these reach each service's own `/health`/`/products`/`/cart` routes
+unchanged. `cart-service` requires `X-User-Id` on `/cart*` (see its
+README) — the gateway doesn't set this for you here since there's no real
+auth/JWT layer in this local setup, just the header cart-service expects.
 
 ## Teardown
 
