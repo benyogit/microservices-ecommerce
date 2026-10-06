@@ -14,9 +14,13 @@ stale carts automatically instead of needing a cleanup job.
   connect attempt (`REDIS_CONNECT_TIMEOUT_MS` + a capped
   `reconnectStrategy`) so a request fails fast with a 500 instead of
   hanging forever when Redis is unreachable
-- `infra/events/event-publisher.ts` / `infra/kafka/producer.ts` — same
-  `EventPublisher` interface and `KafkaEventPublisher` implementation as
-  catalogue-service
+- `infra/events/event-publisher.ts` — `EventPublisher` interface, same
+  as catalogue-service
+- `infra/kafka/producer.ts` — `KafkaEventPublisher`, one implementation
+- `infra/rabbitmq/producer.ts` — `RabbitMQEventPublisher`, the other
+  (routing key = `topic`, one durable topic exchange)
+- `utils/di/container.ts` picks which one via `EVENT_BUS` (`kafka`
+  default, or `rabbitmq`)
 - `infra/catalogue/catalogue-client.ts` — `CatalogueClient` interface
   (`getProduct`), so cart-service doesn't hardcode HTTP specifics beyond
   its one implementation
@@ -37,9 +41,11 @@ stale carts automatically instead of needing a cleanup job.
 ## Dependency injection
 
 `CartRepository`, `EventPublisher`, and `CatalogueClient` are interfaces
-bound in `utils/di/container.ts`. Swapping Redis for something else, or
-pointing `CatalogueClient` at a gRPC call instead of HTTP, means adding an
-implementation and changing one binding — no changes to `CartService`.
+bound in `utils/di/container.ts`. Pointing `CatalogueClient` at a gRPC
+call instead of HTTP means adding an implementation and changing one
+binding — no changes to `CartService`. `EventPublisher` already has two
+real implementations (Kafka, RabbitMQ), picked via `EVENT_BUS` with no
+code change at all.
 
 ## HTTP API
 
@@ -81,11 +87,19 @@ finalizing an order — don't trust the cart's snapshot for money math.
 | `REDIS_CONNECT_TIMEOUT_MS`      | `5000`                       |
 | `REDIS_MAX_CONNECT_RETRIES`     | `3`                          |
 | `CART_TTL_SECONDS`              | `2592000` (30 days)          |
+| `EVENT_BUS`                     | `kafka` (or `rabbitmq`)      |
 | `KAFKA_BROKERS`                 | `localhost:9092`             |
 | `KAFKA_CLIENT_ID`               | `cart-service`                |
+| `RABBITMQ_URL`                  | `amqp://localhost:5672`       |
+| `RABBITMQ_EXCHANGE`             | `domain-events`                |
+| `RABBITMQ_CONNECT_TIMEOUT_MS`   | `5000`                         |
 | `CART_TOPIC`                    | `cart.events`                 |
 | `CATALOGUE_SERVICE_URL`         | `http://localhost:3000`       |
 | `CATALOGUE_REQUEST_TIMEOUT_MS`  | `5000`                        |
+
+`KAFKA_*` vars are only read when `EVENT_BUS=kafka`; `RABBITMQ_*` only
+when `EVENT_BUS=rabbitmq`. `CART_TOPIC` is used either way — as a Kafka
+topic, or as the RabbitMQ routing key.
 
 ## Events published
 

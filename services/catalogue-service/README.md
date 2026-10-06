@@ -20,8 +20,15 @@ to MongoDB and publishes domain events to Kafka on create/delete.
 - `infra/events/event-publisher.ts` — `EventPublisher` interface (lets the
   Kafka producer be swapped for another queue, or wrapped with caching,
   without touching the services)
-- `infra/kafka/producer.ts` — `KafkaEventPublisher`, the current
+- `infra/kafka/producer.ts` — `KafkaEventPublisher`, one
   `EventPublisher` implementation
+- `infra/rabbitmq/producer.ts` — `RabbitMQEventPublisher`, the other.
+  Maps `publish(topic, message)` onto RabbitMQ's model by using `topic`
+  as the routing key on one durable topic exchange (`RABBITMQ_EXCHANGE`,
+  default `domain-events`) — a consumer binds a queue to
+  `catalogue.product` the same way it would subscribe to that Kafka topic
+- `utils/di/container.ts` picks which one is bound via `EVENT_BUS`
+  (`kafka` default, or `rabbitmq`) — see Configuration below
 - `infra/storage/media-storage.ts` — `MediaStorage` interface: a signed
   URL to upload an image/video to (`getUploadUrl`) and the public/CDN URL
   to read it back (`getPublicUrl`), without the service caring which
@@ -58,9 +65,11 @@ Repositories, the event publisher, and media storage are bound behind
 interfaces (`ProductRepository`, `CategoryRepository`, `EventPublisher`,
 `MediaStorage`) in `utils/di/container.ts`, and constructor-injected into
 services and controllers via Inversify (`@injectable()` / `@inject()`). To
-add caching, swap Kafka for another queue, or swap S3 for Azure Blob
-locally, implement the relevant interface and change its binding in
-`container.ts` — no changes needed in the services or controllers.
+add caching or swap S3 for Azure Blob, implement the relevant interface
+and change its binding in `container.ts` — no changes needed in the
+services or controllers. `EventPublisher` already has two real
+implementations (Kafka, RabbitMQ) picked at startup via `EVENT_BUS`,
+rather than needing a code change at all.
 
 ## HTTP API
 
@@ -125,14 +134,22 @@ and the zod schemas when the API changes.
 | ----------------- | ------------------------ |
 | `MONGO_URI`       | `mongodb://localhost:27017` |
 | `MONGO_DB_NAME`    | `catalogue`               |
+| `EVENT_BUS`        | `kafka` (or `rabbitmq`)   |
 | `KAFKA_BROKERS`    | `localhost:9092`          |
 | `KAFKA_CLIENT_ID`  | `catalogue-service`       |
+| `RABBITMQ_URL`           | `amqp://localhost:5672`   |
+| `RABBITMQ_EXCHANGE`      | `domain-events`           |
+| `RABBITMQ_CONNECT_TIMEOUT_MS` | `5000`              |
 | `PRODUCT_TOPIC`    | `catalogue.product`       |
 | `CATEGORY_TOPIC`   | `catalogue.category`      |
 | `STORAGE_BUCKET`   | `catalogue-media`         |
 | `AWS_REGION`       | `us-east-1`               |
 | `STORAGE_UPLOAD_URL_TTL_SECONDS` | `900`       |
 | `STORAGE_PUBLIC_BASE_URL` | unset — falls back to the bucket's S3 URL |
+
+`KAFKA_*` vars are only read when `EVENT_BUS=kafka`; `RABBITMQ_*` only
+when `EVENT_BUS=rabbitmq`. `PRODUCT_TOPIC`/`CATEGORY_TOPIC` are used
+either way — as a Kafka topic, or as the RabbitMQ routing key.
 
 `STORAGE_PUBLIC_BASE_URL` lets you put a CDN (e.g. CloudFront) in front of
 the bucket; when unset, `getPublicUrl` returns the bucket's own S3 URL.

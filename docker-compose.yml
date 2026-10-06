@@ -9,8 +9,10 @@ services:
       PORT: 3000
       MONGO_URI: mongodb://mongo:27017
       MONGO_DB_NAME: catalogue
+      EVENT_BUS: kafka
       KAFKA_BROKERS: kafka:9092
       KAFKA_CLIENT_ID: catalogue-service
+      RABBITMQ_URL: amqp://rabbitmq:5672
       PRODUCT_TOPIC: catalogue.product
       CATEGORY_TOPIC: catalogue.category
       STORAGE_BUCKET: catalogue-media
@@ -33,8 +35,10 @@ services:
     environment:
       PORT: 3001
       REDIS_URL: redis://redis:6379
+      EVENT_BUS: kafka
       KAFKA_BROKERS: kafka:9092
       KAFKA_CLIENT_ID: cart-service
+      RABBITMQ_URL: amqp://rabbitmq:5672
       CART_TOPIC: cart.events
       CATALOGUE_SERVICE_URL: http://catalogue-service:3000
     volumes:
@@ -75,9 +79,22 @@ services:
     volumes:
       - kafka-data:/bitnami/kafka
 
+  # Alternative to kafka — opt in with `docker compose --profile rabbitmq up`
+  # and set EVENT_BUS=rabbitmq on whichever service(s) should use it.
+  # Not started by a plain `docker compose up`.
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    profiles: ['rabbitmq']
+    ports:
+      - '5672:5672'
+      - '15672:15672' # management UI: http://localhost:15672 (guest/guest)
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+
 volumes:
   mongo-data:
   redis-data:
   kafka-data:
+  rabbitmq-data:
   catalogue-service-node-modules:
   cart-service-node-modules:
