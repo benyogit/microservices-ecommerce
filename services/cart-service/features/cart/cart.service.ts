@@ -1,6 +1,6 @@
 import { injectable, inject } from 'inversify';
 import { TYPES } from '../../utils/di/types';
-import { EventPublisher } from '../../infra/events/event-publisher';
+import { EventPublisher } from '@microservices-ecommerce/event-bus';
 import { CatalogueClient } from '../../infra/catalogue/catalogue-client';
 import { AddCartItemInput } from './cart.schema';
 import { Cart } from './cart';

@@ -1,9 +1,12 @@
 import { injectable } from 'inversify';
 import { Kafka, Producer } from 'kafkajs';
-import { EventPublisher } from '../events/event-publisher';
+import { EventPublisher } from './event-publisher';
 
 const KAFKA_BROKERS = (process.env.KAFKA_BROKERS ?? 'localhost:9092').split(',');
-const KAFKA_CLIENT_ID = process.env.KAFKA_CLIENT_ID ?? 'cart-service';
+// Each service sets its own KAFKA_CLIENT_ID (see its docker-compose.yml
+// entry / README) — this fallback is shared, generic code with no
+// identity of its own, so it can't default to one service's name.
+const KAFKA_CLIENT_ID = process.env.KAFKA_CLIENT_ID ?? 'event-bus-client';
 
 @injectable()
 export class KafkaEventPublisher implements EventPublisher {

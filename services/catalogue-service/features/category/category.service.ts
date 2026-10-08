@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify';
 import { randomUUID } from 'crypto';
 import { TYPES } from '../../utils/di/types';
-import { EventPublisher } from '../../infra/events/event-publisher';
+import { EventPublisher } from '@microservices-ecommerce/event-bus';
 import { Category } from './category';
 import { CategoryRepository } from './category.repository';
 import { categoryCreatedEventSchema, categoryDeletedEventSchema } from './category.events';

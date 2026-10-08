@@ -2,9 +2,11 @@ import 'reflect-metadata';
 import { Container } from 'inversify';
 import { TYPES } from './types';
 import { MongoConnection } from '../../infra/db/mongo';
-import { EventPublisher } from '../../infra/events/event-publisher';
-import { KafkaEventPublisher } from '../../infra/kafka/producer';
-import { RabbitMQEventPublisher } from '../../infra/rabbitmq/producer';
+import {
+  EventPublisher,
+  KafkaEventPublisher,
+  RabbitMQEventPublisher,
+} from '@microservices-ecommerce/event-bus';
 import { MediaStorage } from '../../infra/storage/media-storage';
 import { S3MediaStorage } from '../../infra/storage/s3-media-storage';
 import {

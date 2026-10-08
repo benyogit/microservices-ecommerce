@@ -1,0 +1,8 @@
+{
+  "name": "microservices-ecommerce",
+  "private": true,
+  "workspaces": [
+    "services/*",
+    "packages/*"
+  ]
+}

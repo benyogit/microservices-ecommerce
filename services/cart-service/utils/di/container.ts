@@ -2,9 +2,11 @@ import 'reflect-metadata';
 import { Container } from 'inversify';
 import { TYPES } from './types';
 import { RedisConnection } from '../../infra/db/redis';
-import { EventPublisher } from '../../infra/events/event-publisher';
-import { KafkaEventPublisher } from '../../infra/kafka/producer';
-import { RabbitMQEventPublisher } from '../../infra/rabbitmq/producer';
+import {
+  EventPublisher,
+  KafkaEventPublisher,
+  RabbitMQEventPublisher,
+} from '@microservices-ecommerce/event-bus';
 import { CatalogueClient } from '../../infra/catalogue/catalogue-client';
 import { HttpCatalogueClient } from '../../infra/catalogue/http-catalogue-client';
 import { CartRepository, RedisCartRepository } from '../../features/cart/cart.repository';

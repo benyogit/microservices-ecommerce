@@ -44,11 +44,13 @@ kubectl wait --namespace ingress-nginx \
 ## 3. Build and load the service images
 
 `kind` doesn't pull from a registry — each image has to be loaded
-directly into the cluster's nodes:
+directly into the cluster's nodes. Run these from the **repo root**: both
+services depend on the `packages/event-bus` workspace package, so the
+build context has to be the whole repo, not each service's own folder.
 
 ```
-docker build --target production -t catalogue-service:local services/catalogue-service
-docker build --target production -t cart-service:local services/cart-service
+docker build --target production -f services/catalogue-service/Dockerfile -t catalogue-service:local .
+docker build --target production -f services/cart-service/Dockerfile -t cart-service:local .
 kind load docker-image catalogue-service:local
 kind load docker-image cart-service:local
 ```

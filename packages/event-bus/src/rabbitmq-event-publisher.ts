@@ -1,6 +1,6 @@
 import { injectable } from 'inversify';
 import amqp, { Channel, ChannelModel } from 'amqplib';
-import { EventPublisher } from '../events/event-publisher';
+import { EventPublisher } from './event-publisher';
 
 const RABBITMQ_URL = process.env.RABBITMQ_URL ?? 'amqp://localhost:5672';
 const RABBITMQ_EXCHANGE = process.env.RABBITMQ_EXCHANGE ?? 'domain-events';

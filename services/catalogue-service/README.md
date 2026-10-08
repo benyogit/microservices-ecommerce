@@ -17,18 +17,16 @@ to MongoDB and publishes domain events to Kafka on create/delete.
   better as more resources are added, and keeps everything needed to
   understand or extract one resource in one place
 - `infra/db/mongo.ts` — injectable `MongoConnection`
-- `infra/events/event-publisher.ts` — `EventPublisher` interface (lets the
-  Kafka producer be swapped for another queue, or wrapped with caching,
-  without touching the services)
-- `infra/kafka/producer.ts` — `KafkaEventPublisher`, one
-  `EventPublisher` implementation
-- `infra/rabbitmq/producer.ts` — `RabbitMQEventPublisher`, the other.
-  Maps `publish(topic, message)` onto RabbitMQ's model by using `topic`
-  as the routing key on one durable topic exchange (`RABBITMQ_EXCHANGE`,
-  default `domain-events`) — a consumer binds a queue to
-  `catalogue.product` the same way it would subscribe to that Kafka topic
-- `utils/di/container.ts` picks which one is bound via `EVENT_BUS`
-  (`kafka` default, or `rabbitmq`) — see Configuration below
+- `EventPublisher` / `KafkaEventPublisher` / `RabbitMQEventPublisher` now
+  live in `packages/event-bus` (repo root), not here — they were
+  byte-for-byte identical (or near enough) between this service and
+  cart-service, so they were extracted into a shared npm workspace
+  package rather than kept duplicated. See that package's README for
+  what's there and why the rest of `infra/` (Mongo, S3) stays
+  service-specific and un-shared.
+- `utils/di/container.ts` picks `KafkaEventPublisher` or
+  `RabbitMQEventPublisher` via `EVENT_BUS` (`kafka` default, or
+  `rabbitmq`) — see Configuration below
 - `infra/storage/media-storage.ts` — `MediaStorage` interface: a signed
   URL to upload an image/video to (`getUploadUrl`) and the public/CDN URL
   to read it back (`getPublicUrl`), without the service caring which
@@ -208,12 +206,17 @@ both need to share Kafka, so local dev brings up the whole stack (Mongo,
 Kafka, Redis, catalogue-service, cart-service) together rather than each
 service having its own isolated compose file. It builds the `development`
 target with this directory bind-mounted into the container (so edits on
-the host reload the running server). The API is at `http://localhost:3000`.
+the host reload the running server). `packages/event-bus` is baked into
+the image at build time, not bind-mounted — editing it needs
+`docker compose build catalogue-service`, not just a save. The API is at
+`http://localhost:3000`.
 
-**Cloud / production image**:
+**Cloud / production image** (also from the repo root — this
+`Dockerfile`'s build context is the whole repo, since it depends on
+`packages/event-bus`):
 
 ```
-docker build --target production -t catalogue-service .
+docker build --target production -f services/catalogue-service/Dockerfile -t catalogue-service .
 docker run -p 3000:3000 --env-file .env catalogue-service
 ```
 

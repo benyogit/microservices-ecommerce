@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify';
 import { randomUUID } from 'crypto';
 import { TYPES } from '../../utils/di/types';
-import { EventPublisher } from '../../infra/events/event-publisher';
+import { EventPublisher } from '@microservices-ecommerce/event-bus';
 import { MediaStorage } from '../../infra/storage/media-storage';
 import { Product, ProductImage, ProductResponse } from './product';
 import { ProductFilter, ProductRepository } from './product.repository';

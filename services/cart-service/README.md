@@ -14,13 +14,13 @@ stale carts automatically instead of needing a cleanup job.
   connect attempt (`REDIS_CONNECT_TIMEOUT_MS` + a capped
   `reconnectStrategy`) so a request fails fast with a 500 instead of
   hanging forever when Redis is unreachable
-- `infra/events/event-publisher.ts` — `EventPublisher` interface, same
-  as catalogue-service
-- `infra/kafka/producer.ts` — `KafkaEventPublisher`, one implementation
-- `infra/rabbitmq/producer.ts` — `RabbitMQEventPublisher`, the other
-  (routing key = `topic`, one durable topic exchange)
-- `utils/di/container.ts` picks which one via `EVENT_BUS` (`kafka`
-  default, or `rabbitmq`)
+- `EventPublisher` / `KafkaEventPublisher` / `RabbitMQEventPublisher` now
+  live in `packages/event-bus` (repo root), not here — extracted once
+  they were byte-for-byte identical (or near enough) between this
+  service and catalogue-service. See that package's README.
+- `utils/di/container.ts` picks `KafkaEventPublisher` or
+  `RabbitMQEventPublisher` via `EVENT_BUS` (`kafka` default, or
+  `rabbitmq`)
 - `infra/catalogue/catalogue-client.ts` — `CatalogueClient` interface
   (`getProduct`), so cart-service doesn't hardcode HTTP specifics beyond
   its one implementation
@@ -129,7 +129,11 @@ from outside the cluster/network.
 ## Docker
 
 Same multi-stage shape as catalogue-service's `Dockerfile`
-(`development`/`build`/`production`). See the root `docker-compose.yml`
-(not a per-service one — cart-service needs to reach catalogue-service
-and share Kafka with it, so local dev now runs the whole stack together)
-for how to run this alongside catalogue-service, Mongo, Kafka, and Redis.
+(`development`/`build`/`production`), with the same build-context wrinkle:
+its context is the **repo root**, not this folder, since it depends on
+`packages/event-bus`. See the root `docker-compose.yml` (not a
+per-service one — cart-service needs to reach catalogue-service and
+share Kafka with it, so local dev now runs the whole stack together) for
+how to run this alongside catalogue-service, Mongo, Kafka, and Redis.
+`packages/event-bus` is baked into the image at build time, not
+bind-mounted — editing it needs `docker compose build cart-service`.
