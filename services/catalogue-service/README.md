@@ -18,7 +18,7 @@ to MongoDB and publishes domain events to Kafka on create/delete.
   understand or extract one resource in one place
 - `infra/db/mongo.ts` — injectable `MongoConnection`
 - `EventPublisher` / `KafkaEventPublisher` / `RabbitMQEventPublisher` now
-  live in `packages/event-bus` (repo root), not here — they were
+  live in `../packages/event-bus`, not here — they were
   byte-for-byte identical (or near enough) between this service and
   cart-service, so they were extracted into a shared npm workspace
   package rather than kept duplicated. See that package's README for
@@ -200,23 +200,24 @@ Gateway) or another dedicated service before requests reach it.
 docker compose up
 ```
 
-Run from the **repo root**, not this directory — `docker-compose.yml`
-lives there now, since cart-service needs to reach catalogue-service and
-both need to share Kafka, so local dev brings up the whole stack (Mongo,
-Kafka, Redis, catalogue-service, cart-service) together rather than each
-service having its own isolated compose file. It builds the `development`
-target with this directory bind-mounted into the container (so edits on
-the host reload the running server). `packages/event-bus` is baked into
-the image at build time, not bind-mounted — editing it needs
-`docker compose build catalogue-service`, not just a save. The API is at
-`http://localhost:3000`.
+Run from **`services/`** (the parent of this directory), not here —
+`docker-compose.yml` lives there, since cart-service needs to reach
+catalogue-service and both need to share Kafka, so local dev brings up
+the whole stack (Mongo, Kafka, Redis, catalogue-service, cart-service)
+together rather than each service having its own isolated compose file.
+It builds the `development` target with this directory bind-mounted into
+the container (so edits on the host reload the running server).
+`packages/event-bus` is baked into the image at build time, not
+bind-mounted — editing it needs `docker compose build catalogue-service`,
+not just a save. The API is at `http://localhost:3000`.
 
-**Cloud / production image** (also from the repo root — this
-`Dockerfile`'s build context is the whole repo, since it depends on
-`packages/event-bus`):
+**Cloud / production image** (also run from **`services/`** — this
+`Dockerfile`'s build context is that folder, since it depends on the
+sibling `packages/event-bus`):
 
 ```
-docker build --target production -f services/catalogue-service/Dockerfile -t catalogue-service .
+cd services
+docker build --target production -f catalogue-service/Dockerfile -t catalogue-service .
 docker run -p 3000:3000 --env-file .env catalogue-service
 ```
 

@@ -15,7 +15,7 @@ stale carts automatically instead of needing a cleanup job.
   `reconnectStrategy`) so a request fails fast with a 500 instead of
   hanging forever when Redis is unreachable
 - `EventPublisher` / `KafkaEventPublisher` / `RabbitMQEventPublisher` now
-  live in `packages/event-bus` (repo root), not here — extracted once
+  live in `../packages/event-bus`, not here — extracted once
   they were byte-for-byte identical (or near enough) between this
   service and catalogue-service. See that package's README.
 - `utils/di/container.ts` picks `KafkaEventPublisher` or
@@ -130,10 +130,11 @@ from outside the cluster/network.
 
 Same multi-stage shape as catalogue-service's `Dockerfile`
 (`development`/`build`/`production`), with the same build-context wrinkle:
-its context is the **repo root**, not this folder, since it depends on
-`packages/event-bus`. See the root `docker-compose.yml` (not a
-per-service one — cart-service needs to reach catalogue-service and
-share Kafka with it, so local dev now runs the whole stack together) for
-how to run this alongside catalogue-service, Mongo, Kafka, and Redis.
+its context is **`services/`** (this directory's parent), not this
+folder, since it depends on the sibling `packages/event-bus`. See
+`services/docker-compose.yml` (not a per-service one — cart-service
+needs to reach catalogue-service and share Kafka with it, so local dev
+runs the whole stack together) for how to run this alongside
+catalogue-service, Mongo, Kafka, and Redis.
 `packages/event-bus` is baked into the image at build time, not
 bind-mounted — editing it needs `docker compose build cart-service`.

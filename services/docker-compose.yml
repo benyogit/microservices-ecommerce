@@ -1,13 +1,14 @@
-# Build context is the repo root (not each service's folder) because both
-# services depend on the packages/event-bus workspace package. Only each
-# service's own folder is bind-mounted for hot reload — packages/event-bus
-# is baked into the image at build time, so a change there needs
-# `docker compose build <service>` to take effect, not just a save.
+# Build context is this folder (services/), not each service's own
+# subfolder, because both services depend on the packages/event-bus
+# workspace package. Only each service's own folder is bind-mounted for
+# hot reload — packages/event-bus is baked into the image at build time,
+# so a change there needs `docker compose build <service>` to take
+# effect, not just a save.
 services:
   catalogue-service:
     build:
       context: .
-      dockerfile: services/catalogue-service/Dockerfile
+      dockerfile: catalogue-service/Dockerfile
       target: development
     ports:
       - '3000:3000'
@@ -26,8 +27,8 @@ services:
       AWS_ACCESS_KEY_ID: local
       AWS_SECRET_ACCESS_KEY: local
     volumes:
-      - ./services/catalogue-service:/repo/services/catalogue-service
-      - catalogue-service-node-modules:/repo/services/catalogue-service/node_modules
+      - ./catalogue-service:/app/catalogue-service
+      - catalogue-service-node-modules:/app/catalogue-service/node_modules
     depends_on:
       - mongo
       - kafka
@@ -35,7 +36,7 @@ services:
   cart-service:
     build:
       context: .
-      dockerfile: services/cart-service/Dockerfile
+      dockerfile: cart-service/Dockerfile
       target: development
     ports:
       - '3001:3001'
@@ -49,8 +50,8 @@ services:
       CART_TOPIC: cart.events
       CATALOGUE_SERVICE_URL: http://catalogue-service:3000
     volumes:
-      - ./services/cart-service:/repo/services/cart-service
-      - cart-service-node-modules:/repo/services/cart-service/node_modules
+      - ./cart-service:/app/cart-service
+      - cart-service-node-modules:/app/cart-service/node_modules
     depends_on:
       - redis
       - kafka

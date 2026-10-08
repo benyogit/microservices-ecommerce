@@ -2,7 +2,8 @@
   "name": "microservices-ecommerce",
   "private": true,
   "workspaces": [
-    "services/*",
+    "catalogue-service",
+    "cart-service",
     "packages/*"
   ]
 }
